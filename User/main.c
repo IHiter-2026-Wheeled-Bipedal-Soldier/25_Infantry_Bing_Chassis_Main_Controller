@@ -16,6 +16,8 @@
 #include "DebugTask.h"
 #include "ReceiverTask.h"
 #include "Chassis_Task.h"
+#include "Gimbal_Task.h"
+#include "Shooter_Task.h"
 #include "TIM_Config.h"
 #include "SendDataTask.h"
 
@@ -30,6 +32,10 @@ TaskHandle_t ChassisTaskHandle;
 uint32_t ChassisTaskHighWaterMark;
 TaskHandle_t SendDataTaskHandle;
 uint32_t SendDataTaskHighWaterMark;
+TaskHandle_t GimbalTaskHandle;
+uint32_t GimbalTaskHighWaterMark;
+TaskHandle_t ShooterTaskHandle;
+uint32_t ShooterTaskHighWaterMark;
 /****************************测试使用****************************/
 
 int main()
@@ -39,14 +45,22 @@ int main()
     
     // 调用 xTaskCreate 把函数变成“任务”，并分配优先级和内存。
     xTaskCreate(ReceiverTask,"ReceiverTask",600,NULL,30,&ReceiverTaskHandle);
-    xTaskCreate(ChassisTask,"ChassisTask",1000,NULL,25,&ChassisTaskHandle);
     xTaskCreate(SendDataTask,"SendDataTask",600,NULL,20,&SendDataTaskHandle);
     xTaskCreate(DebugTask,"DebugTask",600,NULL,4,&DebugTaskHandle);
+    xTaskCreate(ChassisTask,"ChassisTask",1000,NULL,25,&ChassisTaskHandle);
+    xTaskCreate(GimbalTask,"GimbalTask",400,NULL,24,&GimbalTaskHandle);
+    xTaskCreate(ShooterTask,"ShooterTask",400,NULL,23,&ShooterTaskHandle);
 
     DebugTaskHighWaterMark      = uxTaskGetStackHighWaterMark(DebugTaskHandle);
-    ReceiverTaskHighWaterMark   = uxTaskGetStackHighWaterMark(ReceiverTaskHandle);
-    ChassisTaskHighWaterMark    = uxTaskGetStackHighWaterMark(ChassisTaskHandle);
+    // ReceiverTaskHighWaterMark   = uxTaskGetStackHighWaterMark(ReceiverTaskHandle);
     SendDataTaskHighWaterMark   = uxTaskGetStackHighWaterMark(SendDataTaskHandle);
+    
+    ReceiverTaskHighWaterMark   = uxTaskGetStackHighWaterMark(ReceiverTaskHandle);
+    SendDataTaskHighWaterMark   = uxTaskGetStackHighWaterMark(SendDataTaskHandle);
+    DebugTaskHighWaterMark      = uxTaskGetStackHighWaterMark(DebugTaskHandle);
+    ChassisTaskHighWaterMark    = uxTaskGetStackHighWaterMark(ChassisTaskHandle);
+    GimbalTaskHighWaterMark     = uxTaskGetStackHighWaterMark(GimbalTaskHandle);
+    ShooterTaskHighWaterMark    = uxTaskGetStackHighWaterMark(ShooterTaskHandle);
 
     RunTimeReset(); // 任务开始前重置系统计时器
     // 开启任务调度器

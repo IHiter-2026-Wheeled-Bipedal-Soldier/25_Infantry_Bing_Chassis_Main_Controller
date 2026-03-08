@@ -10,6 +10,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "Algorithm.h"
 
 /****************************************结构体声明****************************************/
 /*辅助结构体：机器人底盘默认可配置的控制变量结构体：无需解除标志位就允许配置*/
@@ -95,7 +96,7 @@ typedef struct
     uint16_t SendDataTask_cnt;  //SendDataTask计数器
     uint16_t ChassisTask_cnt;   //ChassisTask计数器
     uint16_t GimbalTask_cnt;    //GimbalTask计数器
-    uint16_t ShootTask_cnt;     //ShootTask计数器
+    uint16_t ShooterTask_cnt;     //ShooterTask计数器
     uint16_t DebugTask_cnt;     //DebugTask计数器
 
     /************************帧率************************/
@@ -114,7 +115,7 @@ typedef struct
     uint16_t SendDataTask_fps;  //SendDataTask帧率
     uint16_t ChassisTask_fps;   //ChassisTask帧率
     uint16_t GimbalTask_fps;    //GimbalTask帧率
-    uint16_t ShootTask_fps;     //ShootTask帧率
+    uint16_t ShooterTask_fps;   //ShooterTask帧率
     uint16_t DebugTask_fps;     //DebugTask帧率
 }SystemMonitor_StructTypeDef;
 
@@ -124,11 +125,11 @@ typedef struct
     /*辅助结构体1：遥控器数据结构体*/
     struct _RCControlData_StructTypeDef
     {
-        uint16_t JoyStickR_X; //右摇杆X轴，通道0
-        uint16_t JoyStickR_Y; //右摇杆Y轴，通道1
-        uint16_t JoyStickL_X; //左摇杆X轴，通道2
-        uint16_t JoyStickL_Y; //左摇杆Y轴，通道3
-        uint16_t Roller;      //拨轮，通道4
+        uint16_t JoyStickR_X; //右摇杆X轴，通道0，左小右大
+        uint16_t JoyStickR_Y; //右摇杆Y轴，通道1，上小下大
+        uint16_t JoyStickL_X; //左摇杆X轴，通道2，左小右大
+        uint16_t JoyStickL_Y; //左摇杆Y轴，通道3，上小下大
+        uint16_t Roller;      //拨轮，通道4，下大上小
         uint8_t  Level_L;     //左拨杆
         uint8_t  Level_R;     //右拨杆
     }ST_RC;
@@ -197,6 +198,8 @@ extern float    G_fTest3;
 
 /********Debug使用，系统监控结构体********/
 extern SystemMonitor_StructTypeDef GST_SystemMonitor;
+extern Debug_TargetAutoAlter_StructTypeDef GstPitch_DebugDes_AutoAlter; //Pitch轴调试目标自动设定结构体
+extern Debug_TargetAutoAlter_StructTypeDef GstYaw_DebugDes_AutoAlter;   //Yaw轴调试目标自动设定结构体
 
 /*****************通讯相关****************/
 extern bool GF_USART1_RxDone;
@@ -259,5 +262,367 @@ extern ReceiverData_StructTypeDef GST_Receiver;
 #define GravityAcc_Harbin 9.806639f //哈尔滨地区重力加速度，单位：m/s²
 #define GravityAcc_ChangSha 9.7915f //长沙地区重力加速度，单位：m/s²
 #define GravityAcc_ShenZhen 9.7803f //深圳地区重力加速度，单位：m/s²
+
+//TODO:键鼠模式增加部分（MS）
+#define true	1
+#define false	0
+#define FALSE false
+#define TRUE true
+
+//键盘键位定义
+extern bool PRESSED_W;
+extern bool PRESSED_S;
+extern bool PRESSED_A;
+extern bool PRESSED_D;
+extern bool PRESSED_SHIFT;
+extern bool PRESSED_CTRL;
+extern bool PRESSED_Q;
+extern bool PRESSED_E;
+extern bool PRESSED_R;
+extern bool PRESSED_F;
+extern bool PRESSED_G;
+extern bool PRESSED_Z;
+extern bool PRESSED_X;
+extern bool PRESSED_C;
+extern bool PRESSED_V;
+extern bool PRESSED_B;
+
+extern bool PRESSED_W_Pre;
+extern bool PRESSED_S_Pre;
+extern bool PRESSED_A_Pre;
+extern bool PRESSED_D_Pre;
+extern bool PRESSED_SHIFT_Pre;
+extern bool PRESSED_CTRL_Pre;
+extern bool PRESSED_Q_Pre;
+extern bool PRESSED_E_Pre;
+extern bool PRESSED_R_Pre;
+extern bool PRESSED_F_Pre;
+extern bool PRESSED_G_Pre;
+extern bool PRESSED_Z_Pre;
+extern bool PRESSED_X_Pre;
+extern bool PRESSED_C_Pre;
+extern bool PRESSED_V_Pre;
+extern bool PRESSED_B_Pre;
+
+#define KEY_PRESSED_OFFSET_W        ((uint16_t)0x01<<0)
+#define KEY_PRESSED_OFFSET_S        ((uint16_t)0x01<<1)
+#define KEY_PRESSED_OFFSET_A        ((uint16_t)0x01<<2)
+#define KEY_PRESSED_OFFSET_D        ((uint16_t)0x01<<3)
+#define KEY_PRESSED_OFFSET_SHIFT    ((uint16_t)0x01<<4)
+#define KEY_PRESSED_OFFSET_CTRL     ((uint16_t)0x01<<5)
+#define KEY_PRESSED_OFFSET_Q        ((uint16_t)0x01<<6)
+#define KEY_PRESSED_OFFSET_E        ((uint16_t)0x01<<7)
+#define KEY_PRESSED_OFFSET_R		((uint16_t)0x01<<8)
+#define KEY_PRESSED_OFFSET_F		((uint16_t)0x01<<9)
+#define KEY_PRESSED_OFFSET_G		((uint16_t)0x01<<10)
+#define KEY_PRESSED_OFFSET_Z	    ((uint16_t)0x01<<11)
+#define KEY_PRESSED_OFFSET_X	    ((uint16_t)0x01<<12)
+#define KEY_PRESSED_OFFSET_C		((uint16_t)0x01<<13)
+#define KEY_PRESSED_OFFSET_V		((uint16_t)0x01<<14)
+#define KEY_PRESSED_OFFSET_B		((uint16_t)0x01<<15)
+
+//TODO:裁判系统发送数据相关结构体（MS）
+//裁判系统数据ID
+typedef enum
+{
+    GameStatus_ID               = 0x0001,  //比赛状态，1Hz周期发送
+    GameResult_ID               = 0x0002,  //比赛结果，比赛结束后发送
+    GameRobotHP_ID              = 0x0003,  //机器人血量数据，3Hz周期发送
+    EventData_ID                = 0x0101,  //场地事件数据，1Hz周期发送
+    RefereeWarning_ID           = 0x0104,  //裁判警告数据，警告发生后发送
+    DartRemainingTime_ID        = 0x0105,  //飞镖发射口倒计时，1Hz周期发送
+    GameRobotStatus_ID          = 0x0201,  //机器人状态数据，10Hz周期发送
+    PowerHeatData_ID            = 0x0202,  //实时底盘缓冲能量和射击热量数据，10Hz周期发送
+    GameRobotPos_ID             = 0x0203,  //机器人位置数据，1Hz发送
+    Buff_ID                     = 0x0204,  //机器人增益和底盘能量数据，3Hz周期发送
+    RobotHurt_ID                = 0x0206,  //伤害状态数据，伤害发生后发送
+    ShootData_ID                = 0x0207,  //实时射击数据，子弹发射后发送
+    BulletRemaining_ID          = 0x0208,  //弹丸剩余发射数，仅空中机器人，哨兵机器人以及ICRA机器人发送，1Hz周期发送
+    RFIDStatus_ID               = 0x0209,  //机器人RFID状态，3Hz周期发送
+    DART_ID                     = 0x020A,  //飞镖状态，飞镖发射后发送
+    SelfRobotPosition_ID        = 0x020B,  //己方位置信息
+    Radarmark_ID                = 0x020C,  //雷达标记数据
+    Robot_Interactive_ID        = 0x0301,  //机器人间交互数据，发送方触发发送，上限10Hz
+} EN_RSYS_ID;
+
+//机器人ID
+typedef enum
+{
+    Red_1_Hero       = 1,
+    Red_2_Engineer   = 2,
+    Red_3_Standard   = 3,
+    Red_4_Standard   = 4,
+    Red_5_Standard   = 5,
+    Red_6_Aerial     = 6,
+    Red_7_Sentry     = 7,
+    Red_9_Radar      = 9,
+
+    Blue_1_Hero     = 101,
+    Blue_2_Engineer = 102,
+    Blue_3_Standard = 103,
+    Blue_4_Standard = 104,
+    Blue_5_Standard = 105,
+    Blue_6_Aerial   = 106,
+    Blue_7_Sentry   = 107,
+    Blue_9_Radar    = 109,
+} EN_Robot_ID;
+
+//客户端ID
+typedef enum
+{
+    Red_1_Hero_Client       = 0x101,
+    Red_2_Engineer_Client   = 0x102,
+    Red_3_Standard_Client   = 0x103,
+    Red_4_Standard_Client   = 0x104,
+    Red_5_Standard_Client   = 0x105,
+    Red_6_Aerial_Client     = 0x106,
+
+    Blue_1_Hero_Client      = 0x0165,
+    Blue_2_Engineer_Client  = 0x0166,
+    Blue_3_Standard_Client  = 0x0167,
+    Blue_4_Standard_Client  = 0x0168,
+    Blue_5_Standard_Client  = 0x0169,
+    Blue_6_Aerial_Client    = 0x016A,
+} EN_Client_ID;
+
+//1.比赛状态数据：0x0001。发送频率：1Hz，发送范围：所有机器人。
+typedef __packed struct
+{
+	uint8_t game_type: 4;//比赛类型
+	uint8_t game_progress: 4;//当前比赛阶段
+	uint16_t stage_remain_time;//当前阶段剩余时间，单位：秒
+	uint64_t SyncTimeStamp;//UNIX 时间，当机器人正确连接到裁判系统的 NTP 服务器后生效
+} ext_game_status_t;
+
+//2.比赛结果数据：0x0002。发送频率：比赛结束后发送，发送范围：所有机器人。
+typedef __packed struct
+{
+	uint8_t winner;//比赛胜利者（平局or红方胜or蓝方胜）
+} ext_game_result_t;
+
+//3.机器人血量数据：0x0003。发送频率：1Hz，发送范围：所有机器人。
+//新赛季后只会收到己方机器人血量TODO:暂时未更改变量名，但注释已改（MS）
+typedef __packed struct
+{
+	uint16_t red_1_robot_HP;//己方 1 号英雄机器人血量
+	uint16_t red_2_robot_HP;//己方 2 号工程机器人血量
+	uint16_t red_3_robot_HP;//己方 3 号步兵机器人血量
+	uint16_t red_4_robot_HP;//己方 4 号步兵机器人血量
+	uint16_t red_5_robot_HP;//保留位 
+	uint16_t red_7_robot_HP;//己方 7 号哨兵机器人血量
+	uint16_t red_outpost_HP;//己方前哨站血量 
+	uint16_t red_base_HP;   //己方基地血量
+	uint16_t blue_1_robot_HP;
+	uint16_t blue_2_robot_HP;
+	uint16_t blue_3_robot_HP;
+	uint16_t blue_4_robot_HP;
+	uint16_t blue_5_robot_HP;
+	uint16_t blue_7_robot_HP;
+	uint16_t blue_outpost_HP;
+	uint16_t blue_base_HP;
+} ext_game_robot_HP_t;
+
+//6.场地事件数据：0x0101。发送频率：1Hz 周期发送，发送范围：己方机器人。
+typedef __packed struct
+{
+    uint32_t event_type;//为一组32bit数据码，主要包括区域占领情况，飞镖命中时间等场上信息
+} ext_event_data_t;
+
+//8.裁判警告信息：cmd_id(0x0104)。发送频率：警告发生后发送，发送范围：己方机器人。
+typedef __packed struct
+{
+    uint8_t level;//己方最后一次受到判罚的等级
+    uint8_t foul_robot_id;//己方最后一次受到判罚的违规机器人ID
+    uint8_t count;//己方最后一次受到判罚的违规机器人对应判罚等级的违规次数
+} ext_referee_warning_t;
+
+//9.飞镖发射口倒计时：cmd_id(0x0105)。发送频率：1Hz周期发送，发送范围：己方机器人。
+typedef __packed struct
+{
+    uint8_t dart_remaining_time;//己方飞镖发射剩余时间，单位：秒
+    uint16_t dart_info;//飞镖目标状态及击中次数，飞镖此时选定的击打目标等
+} ext_dart_remaining_time_t;
+
+//10.比赛机器人状态：0x0201。发送频率：10Hz，发送范围：单一机器人。
+typedef __packed struct
+{
+    uint8_t robot_id;//本机器人 ID
+    uint8_t robot_level;//机器人等级
+    uint16_t remain_HP;//机器人当前血量
+    uint16_t max_HP;//机器人血量上限
+
+    uint16_t shooter_id1_17mm_cooling_rate;//机器人射击热量每秒冷却值
+    uint16_t shooter_id1_17mm_cooling_limit;//机器人射击热量上限
+    uint16_t chassis_power_limit;//机器人底盘功率上限
+
+	uint8_t mains_power_gimbal_output: 1;//电源管理模块的输出情况：gimbal 口输出，0 为无输出，1 为 24V 输出
+	uint8_t mains_power_chassis_output: 1;//电源管理模块的输出情况：chassis 口输出，0 为无输出，1 为 24V 输出
+	uint8_t mains_power_shooter_output: 1;//电源管理模块的输出情况：shooter 口输出，0 为无输出，1 为 24V 输出
+} ext_game_robot_status_t;
+
+//新赛季有相应通信协议更改
+//11.实时功率热量数据：0x0202。发送频率：50Hz，发送范围：单一机器人。
+typedef __packed struct
+{
+	uint16_t reserved;
+	uint16_t reserved1;
+	float reserved2;
+	uint16_t chassis_power_buffer;//缓冲能量（单位：J）
+	uint16_t shooter_id1_17mm_cooling_heat;//第 1 个 17mm 发射机构的射击热量
+	uint16_t shooter_id1_42mm_cooling_heat;
+} ext_power_heat_data_t;
+
+//12.机器人位置：0x0203。发送频率：10Hz，发送范围：单一机器人。
+typedef __packed struct
+{
+    float x;	//位置 x 坐标，单位 m
+    float y;	//位置 y 坐标，单位 m
+    float yaw;  //本机器人测速模块的朝向，单位：度。正北为 0 度
+} ext_game_robot_pos_t;
+
+//13.机器人增益： 0x0204。发送频率： 1Hz 周期发送，发送范围：单一机器人。
+typedef __packed struct
+{
+    uint8_t recovery_buff; //机器人回血增益（百分比，值为 10 表示每秒恢复血量上限的 10%）
+    uint16_t cooling_buff; //机器人射击热量冷却增益具体值（直接值，值为 x 表示热量冷却增加 x/s）
+    uint8_t defence_buff; //机器人防御增益（百分比，值为 50 表示 50%防御增益）
+    uint8_t vulnerability_buff; //机器人负防御增益（百分比，值为 30 表示-30%防御增益）
+    uint16_t attack_buff; //机器人攻击增益（百分比，值为 50 表示 50%攻击增益）
+    uint8_t remaining_energy;//机器人剩余能量值反馈
+} ext_buff_t;
+
+
+//15.伤害状态：0x0206。发送频率：伤害发生后发送，发送范围：单一机器人。
+typedef __packed struct
+{
+    uint8_t armor_id : 4;//当扣血原因为装甲模块被弹丸攻击、受撞击或离线时，该 4 bit 组成的数值为装甲模块或测速模块的 ID 编号，其他原因值为0
+    uint8_t hurt_type : 4;//血量变化类型（被弹丸攻击or模块离线or受到撞击）
+} ext_robot_hurt_t;
+
+//16.实时射击信息：0x0207。发送频率：射击后发送，发送范围：单一机器人。
+typedef __packed  struct
+{
+	uint8_t bullet_type;//弹丸类型
+	uint8_t shooter_id;//发射机构 ID
+	uint8_t bullet_freq;//弹丸频率（单位：Hz）
+	float bullet_speed;//弹丸初速度（单位：m/s）
+} ext_shoot_data_t;
+
+//17.子弹剩余发射数：0x0208。发送频率：1Hz 周期发送，空中机器人，哨兵机器人以及 ICRA 机器人主控发送，发送范围：单一机器人。
+typedef __packed struct
+{
+	uint16_t bullet_remaining_num_17mm;//机器人自身拥有的 17mm 弹丸允许发弹量
+	uint16_t bullet_remaining_num_42mm;
+	uint16_t coin_remaining_num;//剩余金币数量
+    uint16_t projectile_allowance_fortress; //剩余堡垒弹丸数量
+} ext_bullet_remaining_t;
+
+//18.机器人 RFID 状态：0x0209。发送频率：1Hz，发送范围：单一机器人。
+typedef __packed struct
+{
+    uint32_t rfid_status;//是否已检测到该增益点 RFID 卡
+    uint8_t rfid_status_2; //是否已检测到该增益点 RFID 卡
+} ext_rfid_status_t;
+
+//19.飞镖机器人客户端指令数据：0x020A。发送频率：10Hz，发送范围：单一机器人。
+typedef __packed struct
+{
+    uint8_t dart_launch_opening_status; //当前飞镖发射站的状态
+    uint8_t reserved; //保留位
+    uint16_t target_change_time; //切换击打目标时的比赛剩余时间，单位：秒，无/未切换动作，默认为 0。
+    uint16_t latest_launch_cmd_time;//最后一次操作手确定发射指令时的比赛剩余时间，单位：秒，初始值为 0。
+} ext_dart_client_cmd_t;
+
+//20.己方机器人位置坐标：0x020B
+typedef __packed struct
+{
+ float hero_x;
+ float hero_y;
+ float engineer_x;
+ float engineer_y;
+ float standard_3_x;
+ float standard_3_y;
+ float standard_4_x;
+ float standard_4_y;
+ float standard_5_x;//保留位
+ float standard_5_y;//保留位
+}ground_robot_position_t;
+
+//21.对方机器人被标记进度：0x020C
+typedef __packed struct
+{
+ uint16_t mark_progress; //16bit数字码，展示敌方易伤情况与己方特殊标识情况
+}radar_mark_data_t;
+
+extern ext_game_status_t			  G_ST_Game_Status;//1.比赛状态数据
+extern ext_game_result_t              G_ST_Game_Result;//2.比赛结果数据
+extern ext_game_robot_HP_t            G_ST_Game_Robot_HP;//3.机器人血量数据
+extern ext_event_data_t               G_ST_Event_Data;//6.场地事件数据
+extern ext_referee_warning_t          G_ST_Referee_Warning;//8.裁判警告信息
+extern ext_dart_remaining_time_t	  G_ST_Dart_Remaining_Time;//9.飞镖发射口倒计时
+extern ext_game_robot_status_t        G_ST_Game_Robot_Status;//10.比赛机器人状态
+extern ext_power_heat_data_t          G_ST_Power_Heat_Data;//11.实时功率热量数据
+extern ext_game_robot_pos_t           G_ST_Game_Robot_Pos;//12.机器人位置
+extern ext_buff_t					  G_ST_Buff;//13.机器人增益
+extern ext_robot_hurt_t               G_ST_Robot_Hurt;//15.伤害状态
+extern ext_shoot_data_t               G_ST_Shoot_Data;//16.实时射击信息
+extern ext_bullet_remaining_t         G_ST_Bullet_Remaining;//17.子弹剩余发射数
+extern ext_rfid_status_t			  G_ST_RFID_Status;//18.机器人 RFID 状态
+extern ext_dart_client_cmd_t          G_ST_Dart_Client_Cmd;//19.飞镖机器人客户端指令数据
+extern ground_robot_position_t        G_ST_Ground_Robot_Position;//20.己方机器人位置坐标
+extern radar_mark_data_t              G_ST_Radar_Mark_Data;//21.对方机器人被易伤标记进度
+
+//辅瞄收发数据相关结构体
+typedef struct
+{
+	#pragma pack(1)
+    struct{
+        unsigned char m_head[2];
+        unsigned char m_id;
+        unsigned char m_length;
+        float Pitch;                // 4
+        float Yaw;                  // 4
+        float Rol;  
+		float PelletSpeed;
+		float _positionX;
+		float _positionY;
+		float _positionZ;
+		float targetHP;
+		float targetNum;
+		float z_coordinate;
+		float x_coordinate;
+		float angle_toward_world_coordinate;
+		float pmflag;//辅瞄模式选择
+		unsigned char enemy_attack_flag;
+		unsigned char enemy_vul_rig;
+		unsigned char enemy_rec_rig;
+		unsigned char reserved;
+		unsigned short blue_1_robot_HP;
+		unsigned short blue_3_robot_HP;
+		unsigned short blue_4_robot_HP;
+		unsigned short blue_5_robot_HP;
+		float computer_shutdown;
+        float bullet_cnt;
+        unsigned char m_tail[2];
+    }AimAssistDataSendFrame;
+    struct{
+        unsigned char m_head[2];
+        unsigned char FindTargetOrNot;
+        unsigned char m_length;
+        float Pitch;                
+        float Yaw;    
+		float ShootOrNot;
+		float Target;
+		float _positionX;
+		float _positionY;
+		float _positionZ;
+		float _attackValue;
+		float _omega;
+        unsigned char m_tail[2];
+    }AimAssistDataReceiveFrame;
+#pragma pack()
+} ST_VISION;
+
+extern ST_VISION GST_Vision; //辅瞄收发数据相关结构体
 
 #endif

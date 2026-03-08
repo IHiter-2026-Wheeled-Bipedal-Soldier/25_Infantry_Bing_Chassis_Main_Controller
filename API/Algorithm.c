@@ -1312,3 +1312,101 @@ void HM_TorqueComp_StructInit (HM_TorqueComp_StructTypeDef *pHMComp,
 // 轮毂电机补偿力矩计算函数 
 
 // #pragma endregion
+
+//#region摩擦轮滑模控制相关函数
+/*-------------------------------------------------------------------------------------------------
+函数功能：滑模控制
+-------------------------------------------------------------------------------------------------*/
+void SlidingModeCtrler(ST_SMC* pst_Smc)
+{
+  pst_Smc->SmcTd.aim = pst_Smc->fpDes;
+  TD_Function(&pst_Smc->SmcTd);
+  pst_Smc->fpE = pst_Smc->SmcTd.x1 - pst_Smc->fpFB;
+  pst_Smc->fpU = 1 / pst_Smc->b * 
+									( pst_Smc->SmcTd.x2 
+									+ pst_Smc->eps * SatFunc(pst_Smc->fpE,pst_Smc->dead)
+									+ pst_Smc->gain * pst_Smc->fpE ) ;
+  pst_Smc->fpU = Limit(pst_Smc->fpU, -pst_Smc->fpUMax, pst_Smc->fpUMax);
+}
+//滑模控制辅助函数
+float SatFunc(float in, float d)
+{
+  if(MyAbsf(in) >= d) return MySign(in);
+  else return in/d;
+}
+//滑膜控制中TD算法//TODO:具体算法还需要再研究再优化
+void TD_Function(TD *ptd)
+{
+    float d,d0,y,a0,a=0;
+    ptd->x = ptd->x1 - ptd->aim;
+    d = ptd->r*ptd->h;
+    d0=ptd->h * d;
+    y = ptd->x + ptd->h*ptd->x2;
+    a0 = MySqrt(d*d+8*ptd->r*MyAbsf(y));
+
+    if(MyAbsf(y)>d0)
+        a = ptd->x2+(a0-d)*MySign(y)/2;
+    else
+        a = ptd->x2 + y/ptd->h;
+
+    if(MyAbsf(a)>d)
+        y=-1*ptd->r*MySign(a);
+    else
+        y=-1*ptd->r*a/d;
+
+    ptd->x1 +=  0.001f*ptd->x2;
+    ptd->x2 +=  0.001f*y;
+}
+//#endregion
+
+//#region云台调试模式相关函数
+/**
+  * @brief  获取TD的输出值函数
+  * @note   用来获取TD结构体中的输出值x1
+  * @param  TDptr：TD_StructTypeDef类型的指针，要获取的TD结构体指针
+  * @retval TD的输出值x1，即平滑跟踪值
+*/
+void Test_TargetAutoAlter(Debug_TargetAutoAlter_StructTypeDef *stTest, float *target)
+{
+	static uint8_t buff_mode_cnt = 0;
+	if( stTest->TimeInterval <=50 ){ stTest->TimeInterval = 50; }
+	if( stTest->StartFlag == TRUE)
+	{
+		stTest->TimeCnt++;
+		
+		if( stTest->TimeCnt >= stTest->TimeInterval )
+		{
+			stTest->TimeCnt = 0;
+			stTest->Count++;
+			
+		  *target += (stTest->Director) * (stTest->Delta);
+			
+			if( stTest->Count >= stTest->Interval )
+			{
+				if(stTest->FullOrHalf)//Full
+				{
+				  stTest->Director *= (-1);
+				  stTest->Count     = -stTest->Interval;
+				}
+				else//Half
+				{
+					stTest->Director *= (-1);
+				  stTest->Count     = 0;
+				}
+			}
+			
+			buff_mode_cnt = (buff_mode_cnt==1)?0:1;
+			
+		}
+		
+		if((bool)stTest->Mode && (bool)(buff_mode_cnt%2))
+		{
+			*target -= stTest->Director * stTest->Delta *(1.0f-(float)stTest->TimeCnt/(float)stTest->TimeInterval);
+		}
+	}
+	else
+	{
+		stTest->TimeCnt = 0;
+	}
+}
+//#endregion
