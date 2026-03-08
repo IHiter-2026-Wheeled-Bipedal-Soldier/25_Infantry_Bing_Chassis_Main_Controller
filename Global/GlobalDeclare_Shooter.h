@@ -16,8 +16,8 @@
 
 //#region /**** 变量引出extern声明****************************************************************/
 /*FreeRTOS任务相关*/
-extern const TickType_t GST_TaskPeriod;
-extern const float GST_TaskTime;
+extern const TickType_t GSH_TaskPeriod;
+extern const float GSH_TaskTime;
 
 //发射相关变量定义
 extern bool ShooterSafetyLocked;	   //发射安全锁，防止误打弹
@@ -79,10 +79,11 @@ extern int Locked_Rotor_Protect_Cnt;			// 堵转保护的计时器
 typedef struct
 {
     /*电机相关*/
-    float SupplyPellet_PosDes; //拨弹电机角度目标值，单位度（注意是减速箱输出端角度）
-    float SupplyPellet_VelDes; //拨弹电机速度目标值，单位度/s（注意是减速箱输出端角速度）
-    float SupplyPellet_PosFB;  //拨弹电机角度反馈值，单位度（注意是减速箱输出端角度）
-    float SupplyPellet_VelFB;  //拨弹电机速度反馈值，单位度/s（注意是减速箱输出端角速度）
+    float SupplyPellet_PosDes;  //拨弹电机角度目标值，单位度（注意是减速箱输出端角度）
+    float SupplyPellet_VelDes;  //拨弹电机速度目标值，单位度/s（注意是减速箱输出端角速度）
+    float SupplyPellet_PosFB;   //拨弹电机角度反馈值，单位度（注意是减速箱输出端角度）
+    float SupplyPellet_VelFB;   //拨弹电机速度反馈值，单位度/s（注意是减速箱输出端角速度）
+    float SupplyPellet_Current; //拨弹电机CAN发送电流，注意不是实际电流
 
     /*遥控器操作相关*/
     //单发模式相关
@@ -170,6 +171,7 @@ extern uint8_t PelletNum ;            //已经发射多少颗子弹，每次重�
 extern int16_t Allowed_PelletNum ;  //一个周期内（100ms）实时可发射弹丸数量,受热量限制
 extern int16_t Allowed_PelletNum_Friction;  //一个周期内（100ms）实时可发射弹丸数量,受摩擦轮转速限制
 extern float Heat_Left;//剩余热量
+
+void Shooter_Task_Init(void);
+
 #endif
-
-

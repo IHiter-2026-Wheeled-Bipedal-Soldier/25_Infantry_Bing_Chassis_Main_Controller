@@ -10,7 +10,6 @@
 /*************************************************头文件引用*************************************************/
 #include "stm32f4xx.h"
 #include "GlobalDeclare_Gimbal.h"
-#include "DM_Motor_Ctrl.h"
 #include "Algorithm.h"
 #include "FreeRTOS.h"
 
@@ -100,15 +99,14 @@ float yaw_td_coe_Norm = 0.55f;    //Yaw TD：正常模式下的滤波系数
 //#region /****通讯相关************************************************/
 IMU1Data_StructTypeDef GstGM_IMU1;                        //云台云控IMU1的通讯数据结构体，包括接收和发送
 uint8_t                GFGM_IMU1Restart = IMU1RestartNO;  //云台云控IMU1重启标志位，默认不重启
-ChassisGimbal_Data_StructTypeDef GstGM_MainCtrl = {0};     //双主控间通信
 //#endregion
 
 //#region /****编码器相关***********************************************/
-// volatile ST_ENCODER g_stPitchEncoder   = {0, 0, 0, 0, 36, 8192, 0}; //Pitch电机编码器结构体
-// volatile ST_ENCODER g_stYawEncoder     = {0, 0, 0, 0, 36, 8192, 0}; //Yaw电机编码器结构体
-volatile ST_ENCODER g_stCMREncoder     = {0, 0, 0, 0, 36, 8192, 0}; //右拨弹电机编码器结构体
-volatile ST_ENCODER g_stCMLEncoder     = {0, 0, 0, 0, 36, 8192, 0}; //左拨弹电机编码器结构体
-// volatile ST_ENCODER g_stShooterEncoder = {0, 0, 0, 0, 36, 8192, 0}; //发射电机编码器结构体
+volatile ST_ENCODER g_stPitchEncoder   = {0, 0, 0, 0, 36, 8192, 0}; //Pitch电机编码器结构体
+volatile ST_ENCODER g_stYawEncoder     = {0, 0, 0, 0, 36, 8192, 0}; //Yaw电机编码器结构体
+volatile ST_ENCODER g_stCMREncoder     = {0, 0, 0, 0, 36, 8192, 0}; //右摩擦轮电机编码器结构体
+volatile ST_ENCODER g_stCMLEncoder     = {0, 0, 0, 0, 36, 8192, 0}; //左摩擦轮电机编码器结构体
+volatile ST_ENCODER g_stShooterEncoder = {0, 0, 0, 0, 36, 8192, 0}; //拨弹电机编码器结构体
 
 // float PitchEncoderZero_Norm = 5387.0f; //Pitch编码器零点（正常模式），单位：编码器值
 //#endregion
@@ -151,14 +149,9 @@ bool    Vision_Mode_Changing    = FALSE;                        //视觉模式�
 //#endregion
 
 //#region /****电机结构体相关*********************************************/
-Pitch_Motor_MIT_StructTypeDef Pitch_Motor_Paras = {0.0f};   //Pitch电机各种参数结构体（MIT协议）
-Yaw_Motor_StructTypeDef Yaw_Motor_Paras         = {0.0f};   //Yaw电机各种参数结构体
+Pitch_Motor_StructTypeDef Pitch_Motor_Paras = {0.0f};   //Pitch电机各种参数结构体（MIT协议）
+Yaw_Motor_StructTypeDef   Yaw_Motor_Paras   = {0.0f};   //Yaw电机各种参数结构体
 //#endregion
-
-//#region /****Pitch位置积分前馈力矩相关*****************************************/
-float GstGM_PitchPos_I_SumErr = 0.0f;  //Pitch位置积分累计误差
-//#endregion
-
 
 /**
   * @brief  云台任务初始化函数
@@ -170,12 +163,10 @@ float GstGM_PitchPos_I_SumErr = 0.0f;  //Pitch位置积分累计误差
 void Gimbal_Task_Init(void)
 {
     /**********************************电机相关**************************************/
-    // /*达妙电机初始化*/
-    // dm_motor_init();                          //电机参数初始化
-    // dm_motor_enable(CAN1, &DM_Motor[Motor1]); //电机使能
 
     /*电机PID相关*/
-    // DM_PID_SetKpKd(&Pitch_Motor_Paras, 0.0f, 0.0f);
+    PID_StructInit(&GstGM_PitchPosPID, 0.0f, 0.0f, 0.0f, PID_PitchPos_UMax, PID_PitchPos_UpMax, PID_PitchPos_UiMax, PID_PitchPos_UdMax, PID_PitchPos_AddMax);
+    PID_StructInit(&GstGM_PitchVelPID, 0.0f, 0.0f, 0.0f, PID_PitchVel_UMax, PID_PitchVel_UpMax, PID_PitchVel_UiMax, PID_PitchVel_UdMax, PID_PitchVel_AddMax);
     PID_StructInit(&GstGM_YawPosPID,   0.0f, 0.0f, 0.0f, PID_YawPos_UMax,   PID_YawPos_UpMax,   PID_YawPos_UiMax,   PID_YawPos_UdMax,   PID_YawPos_AddMax);
     PID_StructInit(&GstGM_YawVelPID,   0.0f, 0.0f, 0.0f, PID_YawVel_UMax,   PID_YawVel_UpMax,   PID_YawVel_UiMax,   PID_YawVel_UdMax,   PID_YawVel_AddMax);
 

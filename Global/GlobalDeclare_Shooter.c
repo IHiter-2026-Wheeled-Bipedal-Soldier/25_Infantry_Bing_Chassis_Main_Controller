@@ -15,10 +15,10 @@
 
 /****************************************宏定义、常量定义（不需要修改）****************************************/
 /*FreeRTOS任务相关*/
-const TickType_t GST_TaskPeriod = 1;      //Shooter的任务周期，单位为FreeRTOS的系统节拍。默认是ms（取决于configTICK_RATE_HZ）
-const float GST_TaskTime = (float)GST_TaskPeriod/(float)configTICK_RATE_HZ; //任务运行周期，单位为秒
+const TickType_t GSH_TaskPeriod = 1;      //Shooter的任务周期，单位为FreeRTOS的系统节拍。默认是ms（取决于configTICK_RATE_HZ）
+const float GSH_TaskTime = (float)GSH_TaskPeriod/(float)configTICK_RATE_HZ; //任务运行周期，单位为秒
 /*一些默认定义*/
-#define SampleTime_Default GST_TaskTime   //默认采样时间，单位秒
+#define SampleTime_Default GSH_TaskTime   //默认采样时间，单位秒
 
 /****************************************宏定义、常量定义（可能需要修改）****************************************/
 //#region /****TD相关系数****************************************/
@@ -82,3 +82,20 @@ uint8_t PelletNum = 0;           //已经发射多少颗子弹，每次重载子
 int16_t Allowed_PelletNum  = 0;  //一个周期内（100ms）实时可发射弹丸数量,受热量限制
 int16_t Allowed_PelletNum_Friction=0;  //一个周期内（100ms）实时可发射弹丸数量,受摩擦轮转速限制
 
+/**
+  * @brief  发射任务初始化函数
+  * @note   在Shooter控制任务循环开始之前调用（ShooterTask的while(1)之前调用）
+  *         对发射相关的所有参数进行初始化
+  * @param  无
+  * @retval 无
+*/
+void Shooter_Task_Init(void)
+{
+    /**********************************电机相关**************************************/
+    /*电机PID相关*/
+    PID_StructInit(&GstSH_SupplyPelletPosPID, 0.0f, 0.0f, 0.0f, PID_SupplyPos_UMax, PID_SupplyPos_UpMax, PID_SupplyPos_UiMax, PID_SupplyPos_UdMax, PID_SupplyPos_AddMax);
+    PID_StructInit(&GstSH_SupplyPelletVelPID, 0.0f, 0.0f, 0.0f, PID_SupplyVel_UMax, PID_SupplyVel_UpMax, PID_SupplyVel_UiMax, PID_SupplyVel_UdMax, PID_SupplyVel_AddMax);
+
+    /*电机TD相关*/
+    TD_StructInit(&SupplyPellet_TD, TD_SupplyPellet_r, TD_SupplyPellet_h0, TD_SampleTime);
+}

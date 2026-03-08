@@ -9,6 +9,8 @@
 #ifndef __TIM_CONFIG_H
 #define __TIM_CONFIG_H
 
+#include <stdint.h>
+
 void My_TIM5_Init(void);
 
 void RunTimeReset(void);

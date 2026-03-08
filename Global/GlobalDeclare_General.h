@@ -10,7 +10,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "Algorithm.h"
+// #include "Algorithm.h"
 
 /****************************************结构体声明****************************************/
 /*辅助结构体：机器人底盘默认可配置的控制变量结构体：无需解除标志位就允许配置*/
@@ -81,10 +81,15 @@ typedef struct
 typedef struct
 {
     /************************计数器************************/
-    uint16_t CAN1Rx_cnt;        //CAN1Rx计数器
-    uint16_t CAN2Rx_cnt;        //CAN2Rx计数器
-    uint16_t HubMotor1Rx_cnt;   //左轮毂电机接收计数器
-    uint16_t HubMotor2Rx_cnt;   //右轮毂电机接收计数器
+    uint16_t CAN1Rx_cnt;            //CAN1Rx计数器
+    uint16_t CAN2Rx_cnt;            //CAN2Rx计数器
+    uint16_t HubMotor1Rx_cnt;       //左轮毂电机接收计数器
+    uint16_t HubMotor2Rx_cnt;       //右轮毂电机接收计数器
+    uint16_t FrictionMotor1Rx_cnt;  //左摩擦轮电机Rx计数器
+    uint16_t FrictionMotor2Rx_cnt;  //右摩擦轮电机Rx计数器
+    uint16_t SupplyPelletRx_cnt;    //拨弹电机Rx计数器
+    uint16_t PitchMotorRx_cnt;      //Pitch电机Rx计数器
+    uint16_t YawMotorRx_cnt;        //Yaw电机Rx计数器
 
     uint16_t USART1Rx_cnt;      //USART1Rx计数器
     uint16_t USART2Rx_cnt;      //USART2Rx计数器
@@ -100,10 +105,15 @@ typedef struct
     uint16_t DebugTask_cnt;     //DebugTask计数器
 
     /************************帧率************************/
-    uint16_t CAN1Rx_fps;        //CAN1Rx帧率
-    uint16_t CAN2Rx_fps;        //CAN2Rx帧率
-    uint16_t HubMotor1Rx_fps;   //左轮毂电机帧率
-    uint16_t HubMotor2Rx_fps;   //右轮毂电机帧率
+    uint16_t CAN1Rx_fps;            //CAN1Rx帧率
+    uint16_t CAN2Rx_fps;            //CAN2Rx帧率
+    uint16_t HubMotor1Rx_fps;       //左轮毂电机帧率
+    uint16_t HubMotor2Rx_fps;       //右轮毂电机帧率
+    uint16_t FrictionMotor1Rx_fps;  //左摩擦轮电机帧率
+    uint16_t FrictionMotor2Rx_fps;  //右摩擦轮电机帧率
+    uint16_t SupplyPelletRx_fps;    //拨弹电机帧率
+    uint16_t PitchMotorRx_fps;      //Pitch电机帧率
+    uint16_t YawMotorRx_fps;        //Yaw电机帧率
 
     uint16_t USART1Rx_fps;      //USART1Rx帧率
 	uint16_t USART2Rx_fps;      //USART2Rx帧率
@@ -177,6 +187,51 @@ typedef enum {
     LeftSide,  // 左侧
     RightSide  // 右侧
 } RobotSide_EnumTypeDef;
+// #pragma endregion
+
+/*滑模控制使用的TD*/
+typedef struct
+{
+    float x1;
+    float x2;
+    float x;
+    float r;
+    float h;
+    float T;
+    float aim;
+} TD;
+
+/*滑模控制核心结构体*/
+typedef struct
+{
+    //state
+    float fpDes;
+    float fpFB;
+    float fpE;
+    float fpU;
+    float fpUMax;
+
+    //para
+    float b;        //惯量倒数
+    float eps;      //扰动补偿
+    float gain;     //比例项
+    float dead;     //死区
+    TD SmcTd;
+} ST_SMC;
+
+/*云台发射调试目标自动设定结构体*/
+typedef struct
+{
+	bool StartFlag;
+	uint8_t Mode;
+	int  Delta;
+	int  TimeInterval;
+	int  TimeCnt;
+	bool FullOrHalf;
+	int  Interval;
+	int  Count;
+	int  Director;
+}Debug_TargetAutoAlter_StructTypeDef;
 // #pragma endregion
 
 /********************************不需要修改的变量引出extern声明********************************/

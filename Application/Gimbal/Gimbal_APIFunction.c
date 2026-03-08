@@ -33,24 +33,24 @@ void Gimbal_AllFBDataUpdate(void)
     GSTGM_Data.GimbalMode  = GEMGM_Mode;
 
     /*************** IMU1-云台运动姿态数据更新 ***************/
-    // GSTGM_Data.PitchPosFB   = 	GstGM_IMU1.ST_Rx.PitchAngle;
-    // GSTGM_Data.PitchVelFB   = 	GstGM_IMU1.ST_Rx.PitchAngleVel;
-    // GSTGM_Data.YawPosFB     = 	GstGM_IMU1.ST_Rx.YawAngle;
-    // GSTGM_Data.YawVelFB     = 	GstGM_IMU1.ST_Rx.YawSpeed;
-    // GSTGM_Data.RollPosFB    = 	GstGM_IMU1.ST_Rx.RollAngle;
-    // GSTGM_Data.RollVelFB   = 	GstGB_IMU1.ST_Rx.RollAngleVel;
+    GSTGM_Data.PitchPosFB   = 	GstGM_IMU1.ST_Rx.PitchAngle;
+    GSTGM_Data.PitchVelFB   = 	GstGM_IMU1.ST_Rx.PitchAngleVel;
+    GSTGM_Data.YawPosFB     = 	GstGM_IMU1.ST_Rx.YawAngle;
+    GSTGM_Data.YawVelFB     = 	GstGM_IMU1.ST_Rx.YawSpeed;
+    GSTGM_Data.RollPosFB    = 	GstGM_IMU1.ST_Rx.RollAngle;
+    // GSTGM_Data.RollVelFB   = 	GstGB_IMU1.ST_Rx.RollAngleVel;//无此变量
 
     /*************** 云台目标值更新 ***************/
-    // GSTGM_Data.PitchPosDes = Pitch_Motor_Paras.PosDes;
-    // GSTGM_Data.PitchVelDes = 0.0f;//由于MIT协议不可知(无法由外环计算)
-    // GSTGM_Data.YawPosDes   = GstGM_YawPosPID.Des;
-    // GSTGM_Data.YawVelDes   = GstGM_YawVelPID.Des;
+    GSTGM_Data.PitchPosDes = Pitch_Motor_Paras.PosDes;
+    GSTGM_Data.PitchVelDes = Pitch_Motor_Paras.VelDes;
+    GSTGM_Data.YawPosDes   = Yaw_Motor_Paras.PosDes;
+    GSTGM_Data.YawVelDes   = Yaw_Motor_Paras.VelDes;
 
     /*************** 云台反馈值更新 ***************/
-    // Pitch_Motor_Paras.PosFB = DM_Motor[Motor1].para.pos*R2A; //电机反馈的当前角度值，单位度
-    // Pitch_Motor_Paras.VelFB = DM_Motor[Motor1].para.vel*R2A; //电机反馈的当前角速度值，单位度/s
-    // Yaw_Motor_Paras.PosFB = GstGM_IMU1.ST_Rx.YawAngle;       //假设IMU1的YawAngle为当前yaw角度反馈值(实际可能有点区别)
-    // Yaw_Motor_Paras.VelFB = GstGM_IMU1.ST_Rx.YawSpeed;       //假设IMU1的YawSpeed为当前yaw角速度反馈值(实际可能有点区别）
+    Pitch_Motor_Paras.PosFB = GstGM_IMU1.ST_Rx.PitchAngle;    //电机反馈的当前角度值，单位度
+    Pitch_Motor_Paras.VelFB = GstGM_IMU1.ST_Rx.PitchAngleVel; //电机反馈的当前角速度值，单位度/s
+    Yaw_Motor_Paras.PosFB = GstGM_IMU1.ST_Rx.YawAngle;        //假设IMU1的YawAngle为当前yaw角度反馈值(实际可能有点区别)
+    Yaw_Motor_Paras.VelFB = GstGM_IMU1.ST_Rx.YawSpeed;        //假设IMU1的YawSpeed为当前yaw角速度反馈值(实际可能有点区别）
 
 }
 

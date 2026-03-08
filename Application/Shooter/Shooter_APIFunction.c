@@ -609,7 +609,7 @@ void Heat_Calculate(void) //由于裁判系统帧率过低，采取不用裁判�
 bool __IS_RC_Single_Shoot(void)
 {
     // 获取当前滚轮状态（下拨=1，回正=0）
-    GstSH_Paras.RC_Single_Shoot_Now_status = (GstGM_MainCtrl.ST_Rx.ST_RC.Roller >= RCRoller_DownTH) ? 1 : 0;
+    GstSH_Paras.RC_Single_Shoot_Now_status = (GST_Receiver.ST_RC.Roller >= RCRoller_DownTH) ? 1 : 0;
 
     // 边沿检测：从下拨变为回正（下降沿）
     if(GstSH_Paras.RC_Single_Shoot_Now_status == 0 && GstSH_Paras.RC_Single_Shoot_Pre_status == 1)
@@ -638,7 +638,7 @@ bool __IS_RC_Single_Shoot(void)
   */
 bool __IS_RC_Continuous_Shoot(void)
 {
-    if(GstGM_MainCtrl.ST_Rx.ST_RC.Roller >= RCRoller_DownTH) //遥控器滚轮下拨
+    if(GST_Receiver.ST_RC.Roller >= RCRoller_DownTH) //遥控器滚轮下拨
 	{
 		GstSH_Paras.RC_IF_Continuous_Shoot_Cnt++;
 	}
@@ -703,7 +703,7 @@ bool RC_AUTO_Control_Continuous_Shoot(void)
 bool __IS_KeyMouse_Single_Shoot(void)
 {
     // 获取当前鼠标左键状态（按下=1，未按下=0）
-    GstSH_Paras.KeyMouse_Single_Shoot_Now_status = (GstGM_MainCtrl.ST_Rx.ST_Mouse.Left || GstGM_MainCtrl.ST_Rx.ST_Mouse.Right);
+    GstSH_Paras.KeyMouse_Single_Shoot_Now_status = (GST_Receiver.ST_Mouse.Left || GST_Receiver.ST_Mouse.Right);
 
     // 边沿检测：从按下变为回正松开（下降沿）
     if(GstSH_Paras.KeyMouse_Single_Shoot_Now_status == 0 && GstSH_Paras.KeyMouse_Single_Shoot_Pre_status == 1)
@@ -732,7 +732,7 @@ bool __IS_KeyMouse_Single_Shoot(void)
   */
 bool __IS_KeyMouse_Continuous_Shoot(void)
 {
-    if(GstGM_MainCtrl.ST_Rx.ST_Mouse.Left || GstGM_MainCtrl.ST_Rx.ST_Mouse.Right) //键鼠左键或右键按下
+    if(GST_Receiver.ST_Mouse.Left || GST_Receiver.ST_Mouse.Right) //键鼠左键或右键按下
 	{
 		GstSH_Paras.KeyMouse_IF_Continuous_Shoot_Cnt++;
 	}

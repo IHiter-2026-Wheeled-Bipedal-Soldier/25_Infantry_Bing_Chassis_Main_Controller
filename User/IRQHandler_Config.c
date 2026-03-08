@@ -16,6 +16,8 @@
 #include "WWDG_Config.h"
 #include "GlobalDeclare_General.h"
 #include "GlobalDeclare_Chassis.h"
+#include "GlobalDeclare_Shooter.h"
+#include "Gimbal_Task.h"
 
 /**
   * @brief  CAN1发送中断服务函数
@@ -50,7 +52,65 @@ void CAN1_RX0_IRQHandler(void)
         //Lucky:下面这个switch可以试着封装一下
         switch(CAN_RxMsg.StdId)
         {
-            //case:
+            /* ---- 云台电机反馈 ---- */
+            case 0x205: //Pitch ID:1
+				// Abs_Encoder_Process(&g_stPitchEncoder, Get_Encoder_Number(&CAN_RxMsg));
+				// GSTGM_Data.PitchPosFB = ( g_stPitchEncoder.siSumValue - PitchEncoderZero_Norm ) / 8192.0f * 360.0f;
+				// Pitch_Angle = Angle_Inf_To_180( Pitch_Angle );
+				GST_SystemMonitor.PitchMotorRx_cnt++;
+				break;
+            case 0x20A:  //Yaw电机 ID:6
+				// Abs_Encoder_Process(&g_stYawEncoder, Get_Encoder_Number( &CAN_RxMsg ) );
+				// Yaw_Angle = ( g_stYawEncoder.siSumValue ) / 8192.0f * 360.0f ;
+                
+				// if( PRESSED_SHIFT && PRESSED_F && ( Vision_State_Now & Vision_Cmd_Mask ) == Vision_Disable )
+				// Benjamin_Position_Revise = Angle_Inf_To_180( Yaw_Angle - YawEncoderZero_Norm);
+                
+				// Benjamin_Position = Angle_Inf_To_180( Angle_Inf_To_180( Yaw_Angle - YawEncoderZero_Norm ) - Benjamin_Position_Revise ) ;
+				// Benjamin_Position_Revise_Absolute = Angle_Inf_To_180( Yaw_Angle - YawEncoderZero_Norm );
+				// Benjamin_Position_Absolute = Angle_Inf_To_180( Angle_Inf_To_180( Yaw_Angle - YawEncoderZero_Norm_Absolute ) - Benjamin_Position_Revise ) ;
+				GST_SystemMonitor.YawMotorRx_cnt++;
+				break;
+            
+            /* ---- 摩擦轮电机反馈 ---- */
+			case 0x206:	//右摩擦轮 ID:6
+				Abs_Encoder_Process(&g_stCMREncoder, (CAN_RxMsg.Data[0]<<8 | CAN_RxMsg.Data[1]));
+				smcR.fpFB=Get_Speed(&CAN_RxMsg);
+				// CM1_TEMP=Get_Temperature(&CAN_RxMsg);
+				GST_SystemMonitor.FrictionMotor2Rx_cnt ++;
+				break;
+			case 0x207:	//左摩擦轮 ID:7
+				Abs_Encoder_Process(&g_stCMLEncoder, (CAN_RxMsg.Data[0]<<8 | CAN_RxMsg.Data[1]));
+				smcL.fpFB=Get_Speed(&CAN_RxMsg);
+				// CM2_TEMP=Get_Temperature(&CAN_RxMsg);
+				GST_SystemMonitor.FrictionMotor1Rx_cnt++;
+				break;
+			case 0x208:	//拨弹电机2006 ID:8
+				Abs_Encoder_Process(&g_stShooterEncoder, (CAN_RxMsg.Data[0]<<8 | CAN_RxMsg.Data[1]));
+				GstSH_Paras.SupplyPellet_PosFB = g_stShooterEncoder.siSumValue*360.0f/8192.0f/36.0f; //拨弹电机位置反馈，单位度（注意是减速箱输出端的角度）
+				GstSH_Paras.SupplyPellet_VelFB = ((int16_t)(CAN_RxMsg.Data[2]<<8 | CAN_RxMsg.Data[3]))*6.0f/36.0f; //拨弹电机速度反馈，单位度/s（注意是减速箱输出端的角速度）
+				// Shooter_Torque=CAN_RxMsg.Data[4]<<8 | CAN_RxMsg.Data[5];
+				GST_SystemMonitor.SupplyPelletRx_cnt++;
+				break;
+			
+            /* ---- 超级电容反馈 ---- */
+			case 0x400:
+            //     Capacitor_Cnt = OS_TIME();
+            //     capacitor_msg.CAP_Vol  = ( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
+            //     capacitor_msg.CAP_VOut  = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
+            //    CAP_current[4] = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
+			// 	capacitor_msg.Pow_In = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
+            //     system_monitor.CAN_Rx_Capatitor_cnt++;
+                break;
+			case 0x401:
+					// CAP_current[0] = (s16)( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
+					// CAP_current[1] = (s16)( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
+					// CAP_current[2] = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
+					// CAP_current[3] = (s16)( ( CAN_RxMsg.Data[6] << 8 ) | (CAN_RxMsg.Data[7] ) ) / 100.0f;
+					// system_monitor.CAN_Rx_Capatitor_cnt++;
+					break;
+			default:
+				break;
         }
         GST_SystemMonitor.CAN1Rx_cnt++;
     }
@@ -274,6 +334,46 @@ void UART4_IRQHandler(void)
         UART4_RX_STREAM->NDTR = UA4RxDMAbuf_LEN;   //设置当前待发的数据的数量:Number of Data units to be TRansferred
         DMA_Cmd(UART4_RX_STREAM, ENABLE);          //启用串口DMA接收
     }
+}
+
+/**
+  * @brief  判断串口5单次接收是否完成的函数
+  * @note   判断原理就是DMA每传输一个数据，它的数据传输计数器就会减1
+  *         UART5Rx使用的DMA配置为循环模式，减到0后会自动变回设定的重装值UA5RxDMAbuf_LEN，此时一次接收结束
+  *         所以只需要看DMA的DataCounter就知道单次接收是否结束了
+  * @param  无
+  * @retval true：单次接收结束  false：单次接收未结束
+*/
+bool __IsUART5SingleRecOK(void)
+{
+
+    if(DMA_GetCurrDataCounter(UART5_RX_STREAM) == UA5RxDMAbuf_LEN)
+    {return true;}
+
+    else
+    {return false;}
+}
+/**
+  * @brief  串口5的中断服务函数，作为和裁判系统的通讯
+  * @note   主要是裁判系统的反馈数据、比赛状态数据、机器人相关官方数据信息
+  * @param  无
+  * @retval 无
+*/
+void UART5_IRQHandler(void)
+{
+    /****************************如果不是IDLE中断直接返回****************************/
+    if(USART_GetITStatus(UART5, USART_IT_IDLE) != SET)
+    {return;}
+
+    /****************************先读SR后读DR，清除IDLE中断标志位****************************/
+    UART5->SR;
+    UART5->DR;
+
+    /****************************串口5数据接收、解析****************************/
+
+        UA5Rx_RefereeDataProcess();        //裁判系统数据的接收、处理
+        GST_SystemMonitor.UART5Rx_cnt++;
+
 }
 
 /**
