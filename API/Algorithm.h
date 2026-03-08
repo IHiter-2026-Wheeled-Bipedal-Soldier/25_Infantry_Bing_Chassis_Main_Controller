@@ -200,51 +200,6 @@ typedef struct {
 
 } HM_TorqueComp_StructTypeDef;
 
-/*滑模控制使用的TD*/
-typedef struct
-{
-    float x1;
-    float x2;
-    float x;
-    float r;
-    float h;
-    float T;
-    float aim;
-} TD;
-
-/*滑模控制核心结构体*/
-typedef struct
-{
-    //state
-    float fpDes;
-    float fpFB;
-    float fpE;
-    float fpU;
-    float fpUMax;
-
-    //para
-    float b;        //惯量倒数
-    float eps;      //扰动补偿
-    float gain;     //比例项
-    float dead;     //死区
-    TD SmcTd;
-} ST_SMC;
-
-/*云台发射调试目标自动设定结构体*/
-typedef struct
-{
-	bool StartFlag;
-	uint8_t Mode;
-	int  Delta;
-	int  TimeInterval;
-	int  TimeCnt;
-	bool FullOrHalf;
-	int  Interval;
-	int  Count;
-	int  Director;
-}Debug_TargetAutoAlter_StructTypeDef;
-// #pragma endregion
-
 /*************************************函数声明**************************************/
 
 // PID相关函数全家桶

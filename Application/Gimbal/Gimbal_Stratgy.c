@@ -36,11 +36,11 @@ bool _Is_Any_to_Disabled(void)
     {return false;}
 }
 
-// Disabled -> RC_Free: 底盘进入Free模式
+// Disabled -> RC_Free: 
 bool _Is_Disabled_to_RCFree(void)
 {
-    if(GEMCH_Mode == CHMode_RC_Standby || GEMCH_Mode == CHMode_RC_StandUp || 
-        GEMCH_Mode == CHMode_RC_Free || GEMCH_Mode == CHMode_RC_SitDown)
+    if(GEMCH_Mode == CHMode_RC_Standby || GEMCH_Mode == CHMode_RC_StandUp || GEMCH_Mode == CHMode_RC_Jump
+       || GEMCH_Mode == CHMode_RC_Free || GEMCH_Mode == CHMode_RC_SitDown || GEMCH_Mode == CHMode_RC_OffGround)
     {
         return true;
     }
@@ -90,7 +90,7 @@ bool _Is_RCFollow_to_Free(void)
 // RC_Free -> KeyMouse: 接收到鼠标左键信号
 bool _Is_RCFree_to_KeyMouse(void)
 {
-    if(GstGM_MainCtrl.ST_Rx.ST_Mouse.Left == 1)
+    if(GST_Receiver.ST_Mouse.Left == 1)
     {
         return true;
     }
@@ -616,8 +616,8 @@ void GM_Ctrl_KeyMouse(void)
 
     //TODO：目前使用位控，以后可以试试速控
     //计算pitch和yaw轴增量（键鼠模式使用鼠标移动）
-    float YawIncrement   = (float)GstGM_MainCtrl.ST_Rx.ST_Mouse.X / 32768.0f;   //鼠标X控制Yaw，范围为-1到1
-    float PitchIncrement = (float)GstGM_MainCtrl.ST_Rx.ST_Mouse.Y / 32768.0f;   //鼠标Y控制Pitch，范围为-1到1
+    float YawIncrement   = (float)GST_Receiver.ST_Mouse.X / 32768.0f;   //鼠标X控制Yaw，范围为-1到1
+    float PitchIncrement = (float)GST_Receiver.ST_Mouse.Y / 32768.0f;   //鼠标Y控制Pitch，范围为-1到1
 
     //Yaw目标值赋值
     if(MyAbsf(YawIncrement) > 0)

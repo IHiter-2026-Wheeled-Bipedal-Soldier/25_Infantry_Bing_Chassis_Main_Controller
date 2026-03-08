@@ -22,6 +22,7 @@
 #include "General_AuxiliaryFunc.h"
 #include "Chassis_APIFunction.h"
 #include "Algorithm.h"
+
 extern uint32_t DebugTaskHighWaterMark   ;
 extern uint32_t ReceiverTaskHighWaterMark;
 extern uint32_t ChassisTaskHighWaterMark ;
@@ -79,12 +80,12 @@ void VofaPrint(void)
 {
     USART3_DMA_printf
     ("C:%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\r\n",
-/*0*/   (float)GstCH_LegLen1PID.Des,
-/*1*/   (float)GstCH_LegLen2PID.Des,
-/*2*/   (float)GstCH_LegLen1PID.FB,
-/*3*/   (float)GstCH_LegLen2PID.FB,
-/*4*/   (float)GSTCH_Data.F_OffGround1,
-/*5*/   (float)GSTCH_Data.F_OffGround2,
+/*0*/   (float)Pitch_Motor_Paras.PosFB,
+/*1*/   (float)PitchTD.v,
+/*2*/   (float)PitchTD.x1,
+/*3*/   (float)Yaw_Motor_Paras.PosFB,
+/*4*/   (float)YawTD.v,
+/*5*/   (float)YawTD.x1,
 /*6*/   (float)GstCH_LegLen1PID.U,
 /*7*/   (float)JumpPhase * 10.0f,
 /*8*/   (float)GstCH_LegLen1PID.FB,
@@ -143,6 +144,17 @@ void AllTaskFpsCount(void)
     GST_SystemMonitor.HubMotor2Rx_fps = GST_SystemMonitor.HubMotor2Rx_cnt;
     GST_SystemMonitor.HubMotor2Rx_cnt = 0;
 
+    GST_SystemMonitor.PitchMotorRx_fps = GST_SystemMonitor.PitchMotorRx_cnt;
+    GST_SystemMonitor.PitchMotorRx_cnt = 0;
+    GST_SystemMonitor.YawMotorRx_fps = GST_SystemMonitor.YawMotorRx_cnt;
+    GST_SystemMonitor.YawMotorRx_cnt = 0;
+    GST_SystemMonitor.FrictionMotor1Rx_fps = GST_SystemMonitor.FrictionMotor1Rx_cnt;
+    GST_SystemMonitor.FrictionMotor1Rx_cnt = 0;
+    GST_SystemMonitor.FrictionMotor2Rx_fps = GST_SystemMonitor.FrictionMotor2Rx_cnt;
+    GST_SystemMonitor.FrictionMotor2Rx_cnt = 0;
+    GST_SystemMonitor.SupplyPelletRx_fps = GST_SystemMonitor.SupplyPelletRx_cnt;
+    GST_SystemMonitor.SupplyPelletRx_cnt = 0;
+
     /************串口帧率统计************/
     GST_SystemMonitor.USART1Rx_fps = GST_SystemMonitor.USART1Rx_cnt;
     GST_SystemMonitor.USART1Rx_cnt = 0;
@@ -166,6 +178,6 @@ void AllTaskFpsCount(void)
     GST_SystemMonitor.SendDataTask_cnt = 0;
     GST_SystemMonitor.GimbalTask_fps = GST_SystemMonitor.GimbalTask_cnt;
     GST_SystemMonitor.GimbalTask_cnt = 0;
-    GST_SystemMonitor.ShootTask_fps = GST_SystemMonitor.ShootTask_cnt;
-    GST_SystemMonitor.ShootTask_cnt = 0;
+    GST_SystemMonitor.ShooterTask_fps = GST_SystemMonitor.ShooterTask_cnt;
+    GST_SystemMonitor.ShooterTask_cnt = 0;
 }

@@ -26,12 +26,14 @@ static TickType_t S_lastWakeTimeShooterTask = 0; //上次唤醒的时间，Delay
   */
 void ShooterTask(void* arg)
 {
+    Shooter_Task_Init();        //发射任务相关初始化
+
     while(1)
     {
-        ShooterControl();       //云台的总控制   //待完成
+        // ShooterControl();       //发射的总控制   //待完成
 
-        GST_SystemMonitor.ShooterTask_cnt++;		//云台帧率统计：cnt计数
-        vTaskDelayUntil(&S_lastWakeTimeShooterTask, GST_TaskPeriod); //绝对延时
+        GST_SystemMonitor.ShooterTask_cnt++;		//发射帧率统计：cnt计数
+        vTaskDelayUntil(&S_lastWakeTimeShooterTask, GSH_TaskPeriod); //绝对延时
     }
 }
 

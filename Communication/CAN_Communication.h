@@ -8,10 +8,13 @@
 */
 #include "stm32f4xx.h"
 #include "GlobalDeclare_Chassis.h"
+#include "GlobalDeclare_Gimbal.h"
 
 uint8_t CAN_Send(CAN_TypeDef *CANx,uint32_t ID,int16_t Data1,int16_t Data2,int16_t Data3,int16_t Data4);
 
 void CANTx_SendCurrentToMotor(void);
 
 void CANRx_C620DataParse(C620FeedBackData_StructTypeDef* pESC, CanRxMsg* RxMsg);
+void Abs_Encoder_Process(volatile ST_ENCODER* encoder, int32_t value);
+int32_t Get_Speed(CanRxMsg* rx_message);
 

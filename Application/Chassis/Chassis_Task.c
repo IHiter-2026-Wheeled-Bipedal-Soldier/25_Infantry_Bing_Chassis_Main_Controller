@@ -33,9 +33,12 @@ static TickType_t S_lastWakeTimeChassisTask = 0;  // 上次唤醒的时间，Del
  * @param  无
  * @retval 无
  */
-void ChassisTask(void* arg) {
+void ChassisTask(void* arg)
+{
     Chassis_AllParaInit(); //底盘所有参数初始化
-    while (1) {
+    
+    while(1)
+    {
         ChassisControl();  // 底盘的总控制
 
         // CAP_Control()         // TODO 超电的控制、通讯等等
@@ -50,7 +53,8 @@ void ChassisTask(void* arg) {
  * @param  无
  * @retval 无
  */
-void ChassisControl(void) {
+void ChassisControl(void)
+{
     //! 做了一下处理，不再按照结构体数据封装，而是按照数据处理逻辑封装。
     //! 再进行控制之前对GSTCH_Data里面的数据有更新和处理的写在这里面
     CH_FBData_Parse();           // 解析传感器的原始反馈数据

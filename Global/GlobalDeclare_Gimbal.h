@@ -10,6 +10,7 @@
 #define __GLOBALDECLARE_GIMBAL_H
 
 #include "stdint.h"
+#include <stdbool.h>
 #include "Algorithm.h"
 #include "FreeRTOS.h"
 
@@ -59,105 +60,6 @@ typedef struct
     } ST_Tx;                         
 }IMU1Data_StructTypeDef;
 
-/*双主控通讯结构体，包括发送和接收*/
- typedef struct
-{
-    #pragma pack(1)     //作用：取消字节对齐
-    struct
-    {
-        uint8_t head[2];        //帧头                               2
-        /*辅助结构体1：云台YAW相关数据*/
-    
-        struct YawData_RX_StructTypeDef
-        {
-            float Yaw_encoder_Angle;//Yaw轴编码器角度                 4
-
-        }YawData;
-
-        /*辅助结构体2：发射拨弹相关数据*/
-    
-        struct SupplyPelletData_RX_StructTypeDef
-        {
-            float SupplyPellet_PosFB; //拨弹电机角度反馈，单位度（注意是减速箱输出端角度）        4
-            float SupplyPellet_VelFB; //拨弹电机速度反馈，单位度/s（注意是减速箱输出端角速度）    4
-
-        }SupplyPelletData;
-        
-        /*辅助结构体3：遥控器数据结构体*/
-        struct
-        {
-            uint16_t JoyStickR_X; //右摇杆X轴，通道0                    2
-            uint16_t JoyStickR_Y; //右摇杆Y轴，通道1                    2
-            uint16_t JoyStickL_X; //左摇杆X轴，通道2                    2
-            uint16_t JoyStickL_Y; //左摇杆Y轴，通道3                    2
-            uint16_t Roller;      //拨轮，通道4                         2
-            uint8_t  Level_L;     //左拨杆                             1
-            uint8_t  Level_R;     //右拨杆                             1
-        }ST_RC;
-
-        /*辅助结构体4：键鼠数据结构体*/
-        struct
-        {
-            int16_t X; //鼠标X方向速度，左负右正                             2
-            int16_t Y; //鼠标Y方向速度，上负下正                             2
-            int16_t Z;                                                  // 2
-            uint8_t Left;   //左键是否按下                                  1
-            uint8_t Right;  //右键是否按下                                  1
-            uint16_t usKeyboard;//键盘数据//TODO:这个数据在云台主控中直接放到结构体里，在底盘主控中需要单独处理             2
-        }ST_Mouse;
-
-        /*辅助结构体5：底盘发给云台标志位结构体*/
-        struct Chassiss_To_Gimbal_Flag_StructTypeDef
-        {
-            int8_t supply_stop_flag;                                //1
-            int8_t flag1;                                           //1
-            int8_t flag2;                                           //1
-            int8_t flag3;                                           //1
-            int8_t flag4;                                           //1
-            CHMode_EnumTypeDef CHMode;                              //底盘当前模式 1
-        }ST_Chassis_To_Gimbal_Flag;
-
-        /*辅助结构体5：裁判系统相关数据结构体*/
-        struct RefereeData_StructTypeDef
-        {
-            uint8_t robot_id;//本机器人 ID                          1
-            uint8_t robot_level;//机器人等级                        1
-            uint8_t bullet_freq;//弹丸频率（单位：Hz）                1
-            uint16_t shooter_id1_17mm_cooling_rate;//机器人射击热量每秒冷却值                 2
-            uint16_t shooter_id1_17mm_cooling_limit;//机器人射击热量上限                     2
-            uint16_t shooter_id1_17mm_cooling_heat;//第 1 个 17mm 发射机构的射击热量          2
-            uint16_t bullet_remaining_num_17mm;//机器人自身拥有的 17mm 弹丸允许发弹量          2
-            float bullet_speed;//弹丸初速度（单位：m/s）                                      4   
-        }ST_RefereeData;
-
-        uint8_t tail[2];             //2
-    } ST_Rx; //共57字节
-
-    struct
-    {
-        uint8_t head[2]; //帧头                             2
-
-        /*辅助结构体1：云台相关数据*/
-        struct
-        {
-            float Yaw_Current ;     //Yaw轴电机计算后得出的电流值    4
-            float Yaw_IMU_Angle;    //Yaw轴IMU角度               4
-            float Pitch_IMU_Angle;  //Pitch轴编码器角度         4
-        }GimbalData;
-
-        /*辅助结构体2：拨弹相关结构体*/
-        struct
-        {
-            int16_t SupplyPellet_Current; //拨弹电机计算后得出的电流值  2
-            int8_t Final_ShootOrNot_Flag;   //电控打弹标志位，为1打弹，为0不打弹（和视觉打弹标志位区分）     1
-            int16_t SupplyPellet_Frequency; //弹频，每秒打弹数量                                     2
-        }SupplyPelletData;
-        
-        uint8_t tail[2]; //帧尾                             2
-    } ST_Tx; //共21字节
-    #pragma pack()
-}ChassisGimbal_Data_StructTypeDef;   //底盘云台通讯协议结构体
-
 /*云台数据结构体*/
 typedef struct
 {
@@ -184,37 +86,31 @@ typedef struct
 typedef struct
 {
     /*电机目标*/
-    float PosDes;         //Yaw角度目标值，单位度
-    float VelDes;         //Yaw角速度目标值，单位度/s
+    float PosDes;           //Yaw角度目标值，单位度，从上向下看逆时针为正
+    float VelDes;           //Yaw角速度目标值，单位度/s
 
     /*电机反馈*/
-    float PosFB;          //Yaw角度反馈，单位度
-    float VelFB;          //Yaw角速度反馈，单位度/s
+    float PosFB;            //Yaw角度反馈，单位度，从上向下看逆时针为正
+    float VelFB;            //Yaw角速度反馈，单位度/s
 
-    float Yaw_Current;    //Yaw电流输出（直接发给电机的）
+    float Yaw_Current;      //Yaw电流输出（直接发给电机的）
 
 }Yaw_Motor_StructTypeDef;
 
-/*达妙Pitch电机控制参数结构体（MIT协议）*/
+/*大疆Pitch电机控制参数结构体（MIT协议）*/
 typedef struct
 {
     /*电机目标*/
-    float PosDes;         //Pitch角度目标值，单位度
-    float VelDes;         //Pitch角速度目标值，单位度/s
+    float PosDes;           //Pitch角度目标值，单位度，向上为正
+    float VelDes;           //Pitch角速度目标值，单位度/s
 
     /*电机反馈*/
-    float PosFB;          //Pitch角度反馈，单位度
-    float VelFB;          //Pitch角速度反馈，单位度/s
+    float PosFB;            //Pitch角度反馈，单位度，向上为正
+    float VelFB;            //Pitch角速度反馈，单位度/s
 
-    /*PID参数*/
-    float Kp;             //比例系数
-    float Kd;             //微分系数
-    float Ki_Torque;      //积分系数（用于位置积分前馈力矩）
+    float Pitch_Current;    //Pitch电流输出（直接发给电机的）
 
-    /*前馈力矩*/
-    float Torque;         //前馈力矩，单位N
-
-}Pitch_Motor_MIT_StructTypeDef;
+}Pitch_Motor_StructTypeDef;
 
 /*云台发射相关调试标志位结构体*/
 typedef struct
@@ -260,32 +156,6 @@ typedef struct
     uint16_t SupplyPelletTimeInterval;  //拨弹发射间隔，单位ms
 
 }GimbalShooter_DebugParas_StructTypeDef;
-
-
-//#region /**** 变量引出extern声明****************************************************************/
-/*FreeRTOS任务相关*/
-extern const TickType_t GGM_TaskPeriod;
-extern const float GGM_TaskTime;
-
-/****************************通讯相关****************************/
-extern IMU1Data_StructTypeDef GstGM_IMU1; 
-extern uint8_t GFGM_IMU1Restart;
-extern ChassisGimbal_Data_StructTypeDef GstGM_MainCtrl;//双主控通信结构体
-
-/************************PID、位姿相关************************/
-extern PID_StructTypeDef GstGM_PitchPosPID;
-extern PID_StructTypeDef GstGM_PitchVelPID;
-extern PID_StructTypeDef GstGM_YawPosPID;
-extern PID_StructTypeDef GstGM_YawVelPID;
-extern float GGM_RollAngle;
-extern float GGM_RollAngleBuff;
-
-extern GMData_StructTypeDef GSTGM_Data;     //云台正式数据结构体，存放和云台相关的几乎所有数据
-
-/************************调试模式相关************************/
-extern GimbalShooter_DebugFlags_StructTypeDef GstGMSH_Debug_Flags;  //云台发射调试相关标志位结构体
-extern GimbalShooter_DebugParas_StructTypeDef GstGMSH_Debug_Paras;  //云台发射调试相关参数结构体
-//#endregion
 
 /************************************宏定义引出声明************************************/
 /********************通讯相关********************/
@@ -391,6 +261,37 @@ typedef struct
 	float fpSpeed;	       // 电机减速器输出轴转速，单位：r/min
 } ST_ENCODER;
 
+//#region /**** 变量引出extern声明****************************************************************/
+/*FreeRTOS任务相关*/
+extern const TickType_t GGM_TaskPeriod;
+extern const float GGM_TaskTime;
+
+/****************************通讯相关****************************/
+extern IMU1Data_StructTypeDef GstGM_IMU1; 
+extern uint8_t GFGM_IMU1Restart;
+
+/****************************编码器相关****************************/
+extern volatile ST_ENCODER g_stPitchEncoder;   //Pitch电机编码器结构体
+extern volatile ST_ENCODER g_stYawEncoder;     //Yaw电机编码器结构体
+extern volatile ST_ENCODER g_stCMREncoder;     //右摩擦轮电机编码器结构体
+extern volatile ST_ENCODER g_stCMLEncoder;     //左摩擦轮电机编码器结构体
+extern volatile ST_ENCODER g_stShooterEncoder; //拨弹电机编码器结构体
+
+/************************PID、位姿相关************************/
+extern PID_StructTypeDef GstGM_PitchPosPID;
+extern PID_StructTypeDef GstGM_PitchVelPID;
+extern PID_StructTypeDef GstGM_YawPosPID;
+extern PID_StructTypeDef GstGM_YawVelPID;
+extern float GGM_RollAngle;
+extern float GGM_RollAngleBuff;
+
+extern GMData_StructTypeDef GSTGM_Data;     //云台正式数据结构体，存放和云台相关的几乎所有数据
+
+/************************调试模式相关************************/
+extern GimbalShooter_DebugFlags_StructTypeDef GstGMSH_Debug_Flags;  //云台发射调试相关标志位结构体
+extern GimbalShooter_DebugParas_StructTypeDef GstGMSH_Debug_Paras;  //云台发射调试相关参数结构体
+//#endregion
+
 /*全局变量*/
 extern GMMode_EnumTypeDef GEMGM_Mode;
 
@@ -417,7 +318,7 @@ extern uint8_t Vision_Mode_Pre;         //过去视觉模式
 extern bool    Vision_Mode_Changing;    //视觉模式是否正在切换标志位
 
 //云台电机参数结构体
-extern Pitch_Motor_MIT_StructTypeDef Pitch_Motor_Paras;
+extern Pitch_Motor_StructTypeDef Pitch_Motor_Paras;
 extern Yaw_Motor_StructTypeDef Yaw_Motor_Paras;
 
 //云台电机编码器反馈

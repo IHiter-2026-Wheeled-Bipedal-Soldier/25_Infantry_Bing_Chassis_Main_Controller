@@ -44,12 +44,12 @@ int main()
     BSP_All_Init(); //底层外设初始化
     
     // 调用 xTaskCreate 把函数变成“任务”，并分配优先级和内存。
-    xTaskCreate(ReceiverTask,"ReceiverTask",600,NULL,30,&ReceiverTaskHandle);
-    xTaskCreate(SendDataTask,"SendDataTask",600,NULL,20,&SendDataTaskHandle);
-    xTaskCreate(DebugTask,"DebugTask",600,NULL,4,&DebugTaskHandle);
-    xTaskCreate(ChassisTask,"ChassisTask",1000,NULL,25,&ChassisTaskHandle);
-    xTaskCreate(GimbalTask,"GimbalTask",400,NULL,24,&GimbalTaskHandle);
-    xTaskCreate(ShooterTask,"ShooterTask",400,NULL,23,&ShooterTaskHandle);
+    xTaskCreate(ReceiverTask,"ReceiverTask",200, NULL,30,&ReceiverTaskHandle);
+    xTaskCreate(SendDataTask,"SendDataTask",300, NULL,20,&SendDataTaskHandle);
+    xTaskCreate(DebugTask,   "DebugTask",   400, NULL,4, &DebugTaskHandle);
+    xTaskCreate(ChassisTask, "ChassisTask", 800,NULL,25,&ChassisTaskHandle);
+    xTaskCreate(GimbalTask,  "GimbalTask",  400, NULL,24,&GimbalTaskHandle);
+    xTaskCreate(ShooterTask, "ShooterTask", 400, NULL,23,&ShooterTaskHandle);
 
     DebugTaskHighWaterMark      = uxTaskGetStackHighWaterMark(DebugTaskHandle);
     // ReceiverTaskHighWaterMark   = uxTaskGetStackHighWaterMark(ReceiverTaskHandle);
@@ -69,7 +69,7 @@ int main()
     /****************************测试使用下边界****************************/
 
     /* 后续需要干的事情
-        1、对于串腿，腿空的一侧为前面。对于2025年的车灯条侧为右（电池侧为后）
+        1、对于串腿，腿空的一侧为前面，膝关节为后面。对于2025年的车灯条侧为右（电池侧为后）
 
        2、 修改各个中断的抢占优先级（见RM_BSP.h)
 

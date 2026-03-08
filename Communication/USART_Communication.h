@@ -10,6 +10,7 @@
 #define __USART_COMMUNICATION_H
 
 #include "stdint.h"
+#include "stm32f4xx.h"
 
 /****************************变量引出extern声明****************************/
 /********串口发送/接收缓冲区长度********/
@@ -47,6 +48,45 @@ extern uint8_t UA6RxDMAbuf[];
 #define USART6_RX_STREAM        DMA2_Stream1 //DMA2_Channel5
 #define USART6_TX_STREAM        DMA2_Stream6 //DMA2_Channel5
 
+typedef struct
+{
+    USART_TypeDef* USARTx;              //串口号
+    DMA_Stream_TypeDef* DMAy_Streamx;   //DMA数据流
+    uint8_t* pMailbox;                       //接收邮箱地址
+    __IO uint8_t* pDMAbuf;                   //DMA内存基地址
+    uint16_t MbLen;                          //邮箱大小
+    uint16_t DMALen;                         //DMA缓存区大小
+    uint16_t rxConter;                       //当前接收帧结束地址+1
+    uint16_t rxBufferPtr;                    //当前帧起始地址
+    uint16_t rxSize;                         //当前帧大小
+} USART_RX_TypeDef;
+
+typedef struct
+{
+    USART_TypeDef* USARTx;
+    DMA_Stream_TypeDef* DMAy_Streamx;
+    uint8_t* pMailbox;
+    __IO uint8_t* pDMAbuf;
+    uint16_t MbLen;
+    uint16_t DMALen;
+} USART_TX_TypeDef;
+
+extern uint8_t UA5RxMailbox[];
+extern USART_RX_TypeDef UART5_Rcr;
+extern USART_TX_TypeDef UART5_Tcr;
+
+#define RSYS_RX_FREE             0
+#define RSYS_RX_Length           1
+#define RSYS_RX_Num              2
+#define RSYS_RX_CRC8             3
+#define RSYS_RX_CmdID            4
+#define RSYS_RX_Data             5
+#define RSYS_RX_CRC16            6
+
+/*串口5通信缓冲长度*/
+#define UART5_RXMB_LEN            250   
+#define UART5_TXMB_LEN            20
+
 
 /****************************函数声明****************************/
 /********串口3、6的DMA打印函数********/
@@ -59,5 +99,13 @@ void UA2Rx_IMU1DataProcess(void);
 void UA2Tx_SendDataToIMU1(void);
 void UA4Rx_IMU2DataProcess(void);
 void UA4Tx_SendDataToIMU2(void);
+void UA5Rx_RefereeDataProcess(void);
+void UA5Tx_SendDataToReferee(void);
+void MonitorDataDeal(uint16_t usCmdID);
+void Rc_RsysProtocol(void); //裁判系统协议解析
+uint32_t Verify_CRC8_Check_Sum(uint8_t *pchMessage, uint32_t dwLength);
+uint16_t USART_Receive(USART_RX_TypeDef* USARTx);
+void Append_CRC8_Check_Sum(uint8_t *pchMessage, uint32_t dwLength);
+uint8_t Get_CRC8_Check_Sum(uint8_t *pchMessage,uint32_t dwLength,uint8_t ucCRC8);
 
 #endif

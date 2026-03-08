@@ -209,7 +209,7 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
     ChassisMode_EnumTypeDef NextMode = CurrentMode;
 
     // 用于记忆跳跃或者离地前是 Free 还是 Follow（默认是free）
-    static ChassisMode_EnumTypeDef LastActiveMode = CHMode_RC_Free; 
+    static ChassisMode_EnumTypeDef LastActiveMode = CHMode_RC_Free;
 
     /* ========================================================== */
     /*   Layer 1: 全局中断 (Global Interrupts)                    */
@@ -238,7 +238,7 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
             if (_IsTrans_AutoSafe_To_Standby(ST_ModeChoosePara)) NextMode = CHMode_RC_Standby;
             break;
 
-        case CHMode_RC_Standby: 
+        case CHMode_RC_Standby:
             if (_IsTrans_Cmd_StandUp()) NextMode = CHMode_RC_StandUp;
             break;
 

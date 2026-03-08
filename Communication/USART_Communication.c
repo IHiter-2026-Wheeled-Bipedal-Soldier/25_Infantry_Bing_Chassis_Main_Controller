@@ -254,19 +254,19 @@ void UA2Rx_IMU1DataProcess(void) {
     {
         /**************** 转移串口接收缓冲区的数据到GST_IMU1.ST_Rx中
          * ****************/
-        memcpy(&GstGB_IMU1.ST_Rx, UA2RxDMAbuf, sizeof(GstGB_IMU1.ST_Rx));
+        memcpy(&GstGM_IMU1.ST_Rx, UA2RxDMAbuf, sizeof(GstGM_IMU1.ST_Rx));
 
-        /**************** 把每个数据分配到对应的变量中去 ****************/
-        // TODO 把这里的数据分配放到云台任务里的DataUpdate函数里去做
-        float TempCoe = arm_cos_f32(GstGB_IMU1.ST_Rx.PitchAngle *
-                                    A2R);  // 处理YawSpeed时需要除的一个值
+        // /**************** 把每个数据分配到对应的变量中去 ****************/
+        // // TODO 把这里的数据分配放到云台任务里的DataUpdate函数里去做
+        // float TempCoe = arm_cos_f32(GstGB_IMU1.ST_Rx.PitchAngle *
+        //                             A2R);  // 处理YawSpeed时需要除的一个值
 
-        // FIXME 下面这些变量的赋值，后面要改成赋值给正式结构体，而不是直接赋值给PID结构体
-        GstGB_PitchPosPID.FB = (float)GstGB_IMU1.ST_Rx.PitchAngle;
-        GstGB_YawPosPID.FB = (float)GstGB_IMU1.ST_Rx.YawAngle;
-        GstGB_PitchSpeedPID.FB = (float)GstGB_IMU1.ST_Rx.PitchAngleVel;
-        GstGB_YawSpeedPID.FB = (float)(GstGB_IMU1.ST_Rx.YawSpeed / TempCoe);
-        GGB_RollAngle = (float)GstGB_IMU1.ST_Rx.RollAngle;
+        // // FIXME 下面这些变量的赋值，后面要改成赋值给正式结构体，而不是直接赋值给PID结构体
+        // GstGB_PitchPosPID.FB = (float)GstGB_IMU1.ST_Rx.PitchAngle;
+        // GstGB_YawPosPID.FB = (float)GstGB_IMU1.ST_Rx.YawAngle;
+        // GstGB_PitchSpeedPID.FB = (float)GstGB_IMU1.ST_Rx.PitchAngleVel;
+        // GstGB_YawSpeedPID.FB = (float)(GstGB_IMU1.ST_Rx.YawSpeed / TempCoe);
+        // GGB_RollAngle = (float)GstGB_IMU1.ST_Rx.RollAngle;
     }
 }
 
@@ -280,13 +280,13 @@ void UA2Rx_IMU1DataProcess(void) {
  */
 void UA2Tx_SendDataToIMU1(void) {
     /****************发送数据结构体赋值、添加CRC校验字****************/
-    GstGB_IMU1.ST_Tx.head[0] = 0x55;                       // 帧头1
-    GstGB_IMU1.ST_Tx.head[1] = 0x00;                       // 帧头2
-    GstGB_IMU1.ST_Tx.ReStart = (uint8_t)GFGB_IMU1Restart;  // 云台云控重启标志位
-    GstGB_IMU1.ST_Tx.ReloadStatus =
+    GstGM_IMU1.ST_Tx.head[0] = 0x55;                       // 帧头1
+    GstGM_IMU1.ST_Tx.head[1] = 0x00;                       // 帧头2
+    GstGM_IMU1.ST_Tx.ReStart = (uint8_t)GFGM_IMU1Restart;  // 云台云控重启标志位
+    GstGM_IMU1.ST_Tx.ReloadStatus =
         (uint8_t)(false);  // 原本是之前赛季的补弹标志位，由于规则改动，无需补单功能，直接发false就行
 
-    _CRC16_Append((GstGB_IMU1.ST_Tx.head), UA2TxDMAbuf_LEN);
+    _CRC16_Append((GstGM_IMU1.ST_Tx.head), UA2TxDMAbuf_LEN);
 
     /****************清除中断标志位、配置DMA开始数据传输****************/
     DMA_ClearITPendingBit(
@@ -295,7 +295,7 @@ void UA2Tx_SendDataToIMU1(void) {
 
     DMA_Cmd(USART2_TX_STREAM, DISABLE);  // 设置当前计数值前先禁用DMA
     USART2_TX_STREAM->M0AR =
-        (uint32_t)&GstGB_IMU1.ST_Tx;  // 设置当前待发数据基地址:Memory0 tARget
+        (uint32_t)&GstGM_IMU1.ST_Tx;  // 设置当前待发数据基地址:Memory0 tARget
     USART2_TX_STREAM->NDTR =
         (uint32_t)UA2TxDMAbuf_LEN;  // 设置当前待发的数据的数量:Number of Data
                                     // units to be TRansferred
@@ -419,6 +419,284 @@ void UA4Tx_SendDataToIMU2(void) {
         (uint32_t)UA4TxDMAbuf_LEN;  // 设置当前待发的数据的数量:Number of Data
                                     // units to be Transferred
     DMA_Cmd(UART4_TX_STREAM, ENABLE);  // 启用串口DMA发送
+}
+
+/**
+  * @brief  串口5接收数据，裁判系统>>主控
+  * @note   接收裁判系统发送的相关数据并解析
+  * @param  无
+  * @retval 无
+*/
+void UA5Rx_RefereeDataProcess(void)
+{
+    USART_Receive(&UART5_Rcr);
+    Rc_RsysProtocol();
+}
+/**
+  * @brief  串口5发送数据，主控>>裁判系统
+  * @note   向裁判系统发送有关UI的数据（暂时还没有写）
+  * @param  无
+  * @retval 无
+*/
+void UA5Tx_SendDataToReferee(void)
+{
+
+}
+
+/*----------------------------非协议数据长度解析函数----------------------------------------------------*/
+uint16_t USART_Receive(USART_RX_TypeDef* USARTx)
+{
+    USARTx->rxConter = USARTx->DMALen - DMA_GetCurrDataCounter(USARTx->DMAy_Streamx);   //本次DMA缓冲区填充到的位置
+
+    USARTx->rxBufferPtr += USARTx->rxSize;																							//上次DMA缓冲区填充到的位置
+
+    if(USARTx->rxBufferPtr >= USARTx->DMALen)   																				//说明DMA缓冲区已经满了一次
+    {
+        USARTx->rxBufferPtr %= USARTx->DMALen;
+    }
+
+    if(USARTx->rxBufferPtr < USARTx->rxConter)
+    {
+        USARTx->rxSize = USARTx->rxConter - USARTx->rxBufferPtr;												//计算本次接收数据长度
+
+        if(USARTx->rxSize <= USARTx->MbLen)
+        {
+            for(uint16_t i=0; i<USARTx->rxSize; i++)
+                *(USARTx->pMailbox + i) = *(USARTx->pDMAbuf + USARTx->rxBufferPtr + i);
+        }
+    }else
+    {
+        USARTx->rxSize = USARTx->rxConter + USARTx->DMALen - USARTx->rxBufferPtr;   		//计算本次接收数据长度
+
+        if(USARTx->rxSize <= USARTx->MbLen)     																				//接收的数据长度与期望数据长度相同，则把数据写进邮箱
+        {
+            for(uint16_t i=0; i<USARTx->rxSize-USARTx->rxConter; i++)
+                *(USARTx->pMailbox + i) = *(USARTx->pDMAbuf + USARTx->rxBufferPtr + i);
+
+            for(uint16_t i=0; i<USARTx->rxConter; i++)
+                *(USARTx->pMailbox + USARTx->rxSize-USARTx->rxConter + i) = *(USARTx->pDMAbuf + i);
+        }
+    }
+    return USARTx->rxSize;                      																				//返回本次空闲中断一共接收多少字节
+}
+
+uint8_t UA5RxMailbox[UART5_RXMB_LEN]  = {0};    //串口5接收变量
+USART_RX_TypeDef UART5_Rcr = {UART5,UART5_RX_STREAM,UA5RxMailbox,UA5RxDMAbuf,UART5_RXMB_LEN,UA5RxDMAbuf_LEN,0,0,0}; //串口5接收变量
+uint8_t UA5TxMailbox[UART5_TXMB_LEN]  = {0};     //串口5发送变量
+USART_TX_TypeDef UART5_Tcr = {UART5,UART5_RX_STREAM,UA5TxMailbox,UA5TxDMAbuf,UART5_TXMB_LEN,UA5TxDMAbuf_LEN};       //串口5发送变量
+
+/*------------------------------------------------------------------------
+函 数 名：Rc_RsysProtocol(void)
+函数功能：裁判系统数据接收校验函数
+------------------------------------------------------------------------*/
+uint8_t  Rsys_RX_Status   = RSYS_RX_FREE;
+uint8_t  Rsys_RX_Buf[UART5_RXMB_LEN] = {0};
+uint8_t  usData           = 0;
+uint16_t usDataLength     = 0;   //数据帧长度
+uint16_t ucCmdID          = 0;
+uint8_t  Buf_num          = 0;		//记录读取数据到了哪一位(不算SOF)
+void Rc_RsysProtocol(void)
+{
+  for(u32 i=0; i<UART5_Rcr.rxSize; i++)	   	//循环次数和bufbuf长度一致
+  {
+	usData = UART5_Rcr.pMailbox[i];			//记录接收的数据每一位是什么
+    switch(Rsys_RX_Status)					//状态机
+    {
+		case RSYS_RX_FREE:
+            if( usData == 0xA5 )			//检查到数据帧起始字节
+            {
+                Buf_num = 0 ;			//记录读取数据到了哪一位
+                Rsys_RX_Status = RSYS_RX_Length ;	//自由状态下接到0xA5认为开始
+                Rsys_RX_Buf[Buf_num++] = 0xA5 ;
+            }else
+            {
+                Rsys_RX_Status = RSYS_RX_FREE;
+            }
+        break;
+        case RSYS_RX_Length:
+            if( Buf_num <= 4 )
+            {
+                Rsys_RX_Buf[ Buf_num++ ] = usData ;
+            }
+            else if( Buf_num > 4 )
+            {
+                usDataLength = Rsys_RX_Buf[1] | (Rsys_RX_Buf[2]<<8);	//读取数据帧中data长度
+                Rsys_RX_Buf[ Buf_num++ ] = usData ;						//记录接收到的有效数据
+
+                if( Buf_num == usDataLength + 5 )						//判断数据帧data是否接受完(数据的n位加上)
+                {
+                    if( Verify_CRC8_Check_Sum( Rsys_RX_Buf , 5 ) == 1 )	//进行CRC检测
+                    {
+                        Rsys_RX_Status = RSYS_RX_CRC16 ;
+                    }else
+                    {
+                        if(usData == 0xA5)																//看是否接收到了新的数据
+                        {
+                            Rsys_RX_Status = RSYS_RX_Length ;
+                        }else
+                        {
+                            Rsys_RX_Status = RSYS_RX_FREE ;
+                        }
+                    }
+                }
+            }
+        break;
+        case RSYS_RX_CRC16:
+            if( Buf_num < ( 9 + usDataLength ) )
+            {
+				Rsys_RX_Buf[ Buf_num++ ] = usData;
+            }
+            if( Buf_num >= (9 + usDataLength ) )
+            {
+                Buf_num = 0;
+                Rsys_RX_Status = RSYS_RX_FREE;
+                if(_CRC16_Verify( Rsys_RX_Buf , usDataLength + 9 ) )
+                {
+                     ucCmdID = Rsys_RX_Buf[5] | ( Rsys_RX_Buf[6]<<8 );
+                    MonitorDataDeal( ucCmdID );
+                }
+            }
+            break;
+        default:
+            break;
+		}
+  }
+  memset(Rsys_RX_Buf, 0, UART5_RXMB_LEN);
+  memset(UART5_Rcr.pMailbox, 0, UART5_RXMB_LEN);
+}
+
+/*------------------------------------------------------------------------
+函 数 名：MonitorDataDeal(uint16_t usCmdID)
+函数功能：裁判系统数据处理函数
+------------------------------------------------------------------------*/
+float Time2;
+uint16_t command_prompt = 0;
+uint16_t sender_id = 0;
+uint16_t receiver_id = 0;
+uint8_t radar_send_message_to_me;//接收雷达发给我的数据
+void MonitorDataDeal(uint16_t usCmdID)
+{
+    switch(usCmdID)
+    {
+    case GameStatus_ID:                 //1.比赛状态
+        memcpy(&G_ST_Game_Status, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case GameResult_ID:                 //2.比赛结果
+        memcpy(&G_ST_Game_Result, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case GameRobotHP_ID:                //3.机器人血量数据
+        memcpy(&G_ST_Game_Robot_HP, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case EventData_ID:                  //6.场地事件
+        memcpy(&G_ST_Event_Data, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case RefereeWarning_ID:             //8.裁判警告信息
+        memcpy(&G_ST_Referee_Warning, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case DartRemainingTime_ID:          //9.飞镖发射口倒计时
+        memcpy(&G_ST_Dart_Remaining_Time, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case GameRobotStatus_ID:            //10.比赛机器人状态
+        memcpy(&G_ST_Game_Robot_Status, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case PowerHeatData_ID:              //11.实时功率热量数据
+        memcpy(&G_ST_Power_Heat_Data, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case GameRobotPos_ID:               //12.机器人位置
+        memcpy(&G_ST_Game_Robot_Pos, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case Buff_ID:                       //13.机器人增益
+        memcpy(&G_ST_Buff, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case RobotHurt_ID:                  //15.伤害状态
+        memcpy(&G_ST_Robot_Hurt, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case ShootData_ID:                  //16.实时射击信息
+        memcpy(&G_ST_Shoot_Data, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case BulletRemaining_ID:            //17.子弹剩余发射数
+        memcpy(&G_ST_Bullet_Remaining, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case RFIDStatus_ID:                 //18.机器人RFID状态
+        memcpy(&G_ST_RFID_Status, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case DART_ID:                       //18.飞镖状态，飞镖发射后发送
+        memcpy(&G_ST_Dart_Client_Cmd, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case SelfRobotPosition_ID:          //18.己方位置信息
+        memcpy(&G_ST_Ground_Robot_Position, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    case Radarmark_ID:                  //18.雷达标记数据
+        memcpy(&G_ST_Radar_Mark_Data, &Rsys_RX_Buf[7], usDataLength);
+        break;
+    default:
+        break;
+    }
+}
+
+const u8 CRC8_INIT = 0xff;
+const u8 CRC8_TAB[256] =
+{
+    0x00, 0x5e, 0xbc, 0xe2, 0x61, 0x3f, 0xdd, 0x83, 0xc2, 0x9c, 0x7e, 0x20, 0xa3, 0xfd, 0x1f, 0x41,
+    0x9d, 0xc3, 0x21, 0x7f, 0xfc, 0xa2, 0x40, 0x1e, 0x5f, 0x01, 0xe3, 0xbd, 0x3e, 0x60, 0x82, 0xdc,
+    0x23, 0x7d, 0x9f, 0xc1, 0x42, 0x1c, 0xfe, 0xa0, 0xe1, 0xbf, 0x5d, 0x03, 0x80, 0xde, 0x3c, 0x62,
+    0xbe, 0xe0, 0x02, 0x5c, 0xdf, 0x81, 0x63, 0x3d, 0x7c, 0x22, 0xc0, 0x9e, 0x1d, 0x43, 0xa1, 0xff,
+    0x46, 0x18, 0xfa, 0xa4, 0x27, 0x79, 0x9b, 0xc5, 0x84, 0xda, 0x38, 0x66, 0xe5, 0xbb, 0x59, 0x07,
+    0xdb, 0x85, 0x67, 0x39, 0xba, 0xe4, 0x06, 0x58, 0x19, 0x47, 0xa5, 0xfb, 0x78, 0x26, 0xc4, 0x9a,
+    0x65, 0x3b, 0xd9, 0x87, 0x04, 0x5a, 0xb8, 0xe6, 0xa7, 0xf9, 0x1b, 0x45, 0xc6, 0x98, 0x7a, 0x24,
+    0xf8, 0xa6, 0x44, 0x1a, 0x99, 0xc7, 0x25, 0x7b, 0x3a, 0x64, 0x86, 0xd8, 0x5b, 0x05, 0xe7, 0xb9,
+    0x8c, 0xd2, 0x30, 0x6e, 0xed, 0xb3, 0x51, 0x0f, 0x4e, 0x10, 0xf2, 0xac, 0x2f, 0x71, 0x93, 0xcd,
+    0x11, 0x4f, 0xad, 0xf3, 0x70, 0x2e, 0xcc, 0x92, 0xd3, 0x8d, 0x6f, 0x31, 0xb2, 0xec, 0x0e, 0x50,
+    0xaf, 0xf1, 0x13, 0x4d, 0xce, 0x90, 0x72, 0x2c, 0x6d, 0x33, 0xd1, 0x8f, 0x0c, 0x52, 0xb0, 0xee,
+    0x32, 0x6c, 0x8e, 0xd0, 0x53, 0x0d, 0xef, 0xb1, 0xf0, 0xae, 0x4c, 0x12, 0x91, 0xcf, 0x2d, 0x73,
+    0xca, 0x94, 0x76, 0x28, 0xab, 0xf5, 0x17, 0x49, 0x08, 0x56, 0xb4, 0xea, 0x69, 0x37, 0xd5, 0x8b,
+    0x57, 0x09, 0xeb, 0xb5, 0x36, 0x68, 0x8a, 0xd4, 0x95, 0xcb, 0x29, 0x77, 0xf4, 0xaa, 0x48, 0x16,
+    0xe9, 0xb7, 0x55, 0x0b, 0x88, 0xd6, 0x34, 0x6a, 0x2b, 0x75, 0x97, 0xc9, 0x4a, 0x14, 0xf6, 0xa8,
+    0x74, 0x2a, 0xc8, 0x96, 0x15, 0x4b, 0xa9, 0xf7, 0xb6, 0xe8, 0x0a, 0x54, 0xd7, 0x89, 0x6b, 0x35,
+};
+
+/*************************************************************************
+函 数 名：Get_CRC8_Check_Sum
+函数功能：利用CRC8算法计算输入数据的CRC8检验字
+备    注：
+*************************************************************************/
+uint8_t Get_CRC8_Check_Sum(uint8_t *pchMessage,uint32_t dwLength,uint8_t ucCRC8)
+{
+    uint8_t ucIndex;
+    while (dwLength--)
+    {
+        ucIndex = ucCRC8^(*pchMessage++);//二进制数按位异或运算
+        ucCRC8 = CRC8_TAB[ucIndex];
+    }
+    return(ucCRC8);
+}
+
+/*************************************************************************
+函 数 名：Verify_CRC8_Check_Sum
+函数功能：CRC8检验
+备    注：返回检验结果0（错误）或1（正确）
+*************************************************************************/
+uint32_t Verify_CRC8_Check_Sum(uint8_t *pchMessage, uint32_t dwLength)
+{
+    uint8_t ucExpected = 0;
+    if ((pchMessage == 0) || (dwLength <= 2))
+        return 0;
+    ucExpected = Get_CRC8_Check_Sum (pchMessage, dwLength-1, CRC8_INIT);
+    return ( ucExpected == pchMessage[dwLength-1] );
+}
+
+/*************************************************************************
+函 数 名：Append_CRC8_Check_Sum
+函数功能：在输入数组尾添加CRC8检验字
+备    注：dwLength = Data + chechsum
+*************************************************************************/
+void Append_CRC8_Check_Sum(uint8_t *pchMessage, uint32_t dwLength)
+{
+    uint8_t ucCRC = 0;
+    if ((pchMessage == 0) || (dwLength <= 2)) return;
+
+    ucCRC = Get_CRC8_Check_Sum ( (uint8_t *)pchMessage, dwLength-1, CRC8_INIT);
+    pchMessage[dwLength-1] = ucCRC;
 }
 
 // #pragma endregion
