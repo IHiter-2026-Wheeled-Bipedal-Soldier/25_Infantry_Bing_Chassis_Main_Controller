@@ -9,6 +9,8 @@
 #ifndef __ALGORITHM_H
 #define __ALGORITHM_H
 
+#include <stdbool.h>
+#include <stdint.h>
 #include "GlobalDeclare_General.h"
 
 /****结构体声明*******************************************************************************/
@@ -197,6 +199,50 @@ typedef struct {
     float Err_HM2;           // 右轮轮速误差 E_r = \dot\theta_{w,r}R_w - (\hat{\dot{s}} + R_l\hat{\dot{\phi}}) * R_w
 
 } HM_TorqueComp_StructTypeDef;
+
+/*滑模控制使用的TD*/
+typedef struct
+{
+    float x1;
+    float x2;
+    float x;
+    float r;
+    float h;
+    float T;
+    float aim;
+} TD;
+
+/*滑模控制核心结构体*/
+typedef struct
+{
+    //state
+    float fpDes;
+    float fpFB;
+    float fpE;
+    float fpU;
+    float fpUMax;
+
+    //para
+    float b;        //惯量倒数
+    float eps;      //扰动补偿
+    float gain;     //比例项
+    float dead;     //死区
+    TD SmcTd;
+} ST_SMC;
+
+/*云台发射调试目标自动设定结构体*/
+typedef struct
+{
+	bool StartFlag;
+	uint8_t Mode;
+	int  Delta;
+	int  TimeInterval;
+	int  TimeCnt;
+	bool FullOrHalf;
+	int  Interval;
+	int  Count;
+	int  Director;
+}Debug_TargetAutoAlter_StructTypeDef;
 // #pragma endregion
 
 /*************************************函数声明**************************************/
@@ -268,4 +314,13 @@ void KF_ChassisVel_Update(KF_StructTypeDef* KFptr, float v_body_obs, float a_imu
 // 轮毂电机模型自适应补偿相关函数全家桶
 // TODO 这个位置考虑怎么还得改一下
 void HM_TorqueComp_StructInit(HM_TorqueComp_StructTypeDef* pHMComp, float K_Trac_Norm, float K_Trac_Strg, float K_Stab, float Max_HM_Comp_Ratio, float Weight_HM1, float Weight_HM2, float Err_Sat, float Err_DZ);
+
+// 摩擦轮控制相关函数全家桶
+void SlidingModeCtrler(ST_SMC* pst_Smc);
+float SatFunc(float in, float d);
+void TD_Function(TD *ptd);
+
+// 云台发射调试相关函数全家桶
+void Test_TargetAutoAlter(Debug_TargetAutoAlter_StructTypeDef *stTest, float *target);
+
 #endif

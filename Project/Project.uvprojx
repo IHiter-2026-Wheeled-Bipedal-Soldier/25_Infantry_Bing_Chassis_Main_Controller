@@ -19,7 +19,7 @@
           <Vendor>STMicroelectronics</Vendor>
           <PackID>Keil.STM32F4xx_DFP.3.1.0</PackID>
           <PackURL>https://www.keil.com/pack/</PackURL>
-          <Cpu>IRAM(0x20000000,0x00020000) IRAM2(0x10000000,0x00010000) IROM(0x08000000,0x00080000) CPUTYPE("Cortex-M4") FPU2 CLOCK(12000000) ELITTLE</Cpu>
+          <Cpu>IRAM(0x20000000,0x00020000) IRAM2(0x10000000,0x00010000) IROM(0x08000000,0x00080000) CPUTYPE("Cortex-M4") FPU2 DSP CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
           <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC1000 -FN1 -FF0STM32F4xx_512 -FS08000000 -FL080000 -FP0($$Device:STM32F407VETx$CMSIS\Flash\STM32F4xx_512.FLM))</FlashDriverDll>
@@ -139,7 +139,7 @@
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2CM3.DLL</Flash2>
-          <Flash3>"" ()</Flash3>
+          <Flash3></Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -187,7 +187,6 @@
             <RvdsVP>2</RvdsVP>
             <RvdsMve>0</RvdsMve>
             <RvdsCdeCp>0</RvdsCdeCp>
-            <nBranchProt>0</nBranchProt>
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -406,9 +405,24 @@
               <FilePath>..\Global\GlobalDeclare_Chassis.h</FilePath>
             </File>
             <File>
+              <FileName>GlobalDeclare_Gimbal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Global\GlobalDeclare_Gimbal.c</FilePath>
+            </File>
+            <File>
               <FileName>GlobalDeclare_Gimbal.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Global\GlobalDeclare_Gimbal.h</FilePath>
+            </File>
+            <File>
+              <FileName>GlobalDeclare_Shooter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Global\GlobalDeclare_Shooter.c</FilePath>
+            </File>
+            <File>
+              <FileName>GlobalDeclare_Shooter.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Global\GlobalDeclare_Shooter.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -434,11 +448,6 @@
               <FileName>Algorithm_Simple.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\API\Algorithm_Simple.h</FilePath>
-            </File>
-            <File>
-              <FileName>GlobalDeclare_Gimbal.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Global\GlobalDeclare_Gimbal.c</FilePath>
             </File>
             <File>
               <FileName>General_AuxiliaryFunc.c</FileName>
@@ -503,6 +512,26 @@
               <FileType>5</FileType>
               <FilePath>..\Application\Gimbal\Gimbal_Task.h</FilePath>
             </File>
+            <File>
+              <FileName>Gimbal_Stratgy.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\Gimbal\Gimbal_Stratgy.c</FilePath>
+            </File>
+            <File>
+              <FileName>Gimbal_Stratgy.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Application\Gimbal\Gimbal_Stratgy.h</FilePath>
+            </File>
+            <File>
+              <FileName>Gimbal_APIFunction.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\Gimbal\Gimbal_APIFunction.c</FilePath>
+            </File>
+            <File>
+              <FileName>Gimbal_APIFunction.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Application\Gimbal\Gimbal_APIFunction.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -517,6 +546,26 @@
               <FileName>Shooter_Task.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Application\Shooter\Shooter_Task.h</FilePath>
+            </File>
+            <File>
+              <FileName>Shooter_Stratgy.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\Shooter\Shooter_Stratgy.c</FilePath>
+            </File>
+            <File>
+              <FileName>Shooter_Stratgy.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Application\Shooter\Shooter_Stratgy.h</FilePath>
+            </File>
+            <File>
+              <FileName>Shooter_APIFunction.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\Shooter\Shooter_APIFunction.c</FilePath>
+            </File>
+            <File>
+              <FileName>Shooter_APIFunction.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Application\Shooter\Shooter_APIFunction.h</FilePath>
             </File>
           </Files>
         </Group>
