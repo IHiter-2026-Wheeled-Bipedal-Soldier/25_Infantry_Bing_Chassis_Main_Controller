@@ -83,6 +83,7 @@ typedef struct
     /************************计数器************************/
     uint16_t CAN1Rx_cnt;            //CAN1Rx计数器
     uint16_t CAN2Rx_cnt;            //CAN2Rx计数器
+    uint16_t CapacitorRx_cnt;       //电容CAN数据接收计数器
     uint16_t HubMotor1Rx_cnt;       //左轮毂电机接收计数器
     uint16_t HubMotor2Rx_cnt;       //右轮毂电机接收计数器
     uint16_t FrictionMotor1Rx_cnt;  //左摩擦轮电机Rx计数器
@@ -91,22 +92,23 @@ typedef struct
     uint16_t PitchMotorRx_cnt;      //Pitch电机Rx计数器
     uint16_t YawMotorRx_cnt;        //Yaw电机Rx计数器
 
-    uint16_t USART1Rx_cnt;      //USART1Rx计数器
-    uint16_t USART2Rx_cnt;      //USART2Rx计数器
-    uint16_t USART3Rx_cnt;      //USART3Rx计数器
-    uint16_t UART4Rx_cnt;       //UART4Rx计数器
-    uint16_t UART5Rx_cnt;       //UART5Rx计数器
-    uint16_t USART6Rx_cnt;      //USART6Rx计数器
+    uint16_t USART1Rx_cnt;          //USART1Rx计数器
+    uint16_t USART2Rx_cnt;          //USART2Rx计数器
+    uint16_t USART3Rx_cnt;          //USART3Rx计数器
+    uint16_t UART4Rx_cnt;           //UART4Rx计数器
+    uint16_t UART5Rx_cnt;           //UART5Rx计数器
+    uint16_t USART6Rx_cnt;          //USART6Rx计数器
 
-    uint16_t SendDataTask_cnt;  //SendDataTask计数器
-    uint16_t ChassisTask_cnt;   //ChassisTask计数器
-    uint16_t GimbalTask_cnt;    //GimbalTask计数器
-    uint16_t ShooterTask_cnt;     //ShooterTask计数器
-    uint16_t DebugTask_cnt;     //DebugTask计数器
+    uint16_t SendDataTask_cnt;      //SendDataTask计数器
+    uint16_t ChassisTask_cnt;       //ChassisTask计数器
+    uint16_t GimbalTask_cnt;        //GimbalTask计数器
+    uint16_t ShooterTask_cnt;       //ShooterTask计数器
+    uint16_t DebugTask_cnt;         //DebugTask计数器
 
     /************************帧率************************/
     uint16_t CAN1Rx_fps;            //CAN1Rx帧率
     uint16_t CAN2Rx_fps;            //CAN2Rx帧率
+    uint16_t CapacitorRx_fps;       //电容CAN数据接收帧率
     uint16_t HubMotor1Rx_fps;       //左轮毂电机帧率
     uint16_t HubMotor2Rx_fps;       //右轮毂电机帧率
     uint16_t FrictionMotor1Rx_fps;  //左摩擦轮电机帧率
@@ -115,18 +117,18 @@ typedef struct
     uint16_t PitchMotorRx_fps;      //Pitch电机帧率
     uint16_t YawMotorRx_fps;        //Yaw电机帧率
 
-    uint16_t USART1Rx_fps;      //USART1Rx帧率
-	uint16_t USART2Rx_fps;      //USART2Rx帧率
-	uint16_t USART3Rx_fps;      //USART3Rx帧率
-	uint16_t UART4Rx_fps;       //UART4Rx帧率
-	uint16_t UART5Rx_fps;       //UART5Rx帧率
-	uint16_t USART6Rx_fps;      //USART6Rx帧率
-
-    uint16_t SendDataTask_fps;  //SendDataTask帧率
-    uint16_t ChassisTask_fps;   //ChassisTask帧率
-    uint16_t GimbalTask_fps;    //GimbalTask帧率
-    uint16_t ShooterTask_fps;   //ShooterTask帧率
-    uint16_t DebugTask_fps;     //DebugTask帧率
+    uint16_t USART1Rx_fps;          //USART1Rx帧率
+	uint16_t USART2Rx_fps;          //USART2Rx帧率
+	uint16_t USART3Rx_fps;          //USART3Rx帧率
+	uint16_t UART4Rx_fps;           //UART4Rx帧率
+	uint16_t UART5Rx_fps;           //UART5Rx帧率
+	uint16_t USART6Rx_fps;          //USART6Rx帧率
+    
+    uint16_t SendDataTask_fps;      //SendDataTask帧率
+    uint16_t ChassisTask_fps;       //ChassisTask帧率
+    uint16_t GimbalTask_fps;        //GimbalTask帧率
+    uint16_t ShooterTask_fps;       //ShooterTask帧率
+    uint16_t DebugTask_fps;         //DebugTask帧率
 }SystemMonitor_StructTypeDef;
 
 /*遥控器接收机 接收DR16 18字节数据的结构体*/

@@ -414,6 +414,9 @@ JMData_StructTypeDef GSTCH_JM4 = {JM4ID, 0, 0};  // 右后关节电机控制结�
 HMData_StructTypeDef GSTCH_HM1 = {HM_ReductionRatio};  // 左轮毂电机控制结构体
 HMData_StructTypeDef GSTCH_HM2 = {HM_ReductionRatio};  // 右轮毂电机控制结构体
 
+/*超电数据结构体*/
+CapacitorMessage_StructTypeDef GSTCH_Capacitor;  //超电数据结构体
+
 /*底盘数据结构体*/
 CHData_StructTypeDef GSTCH_Data;  // 底盘正式数据结构体，存放和底盘相关的几乎所有数据
 

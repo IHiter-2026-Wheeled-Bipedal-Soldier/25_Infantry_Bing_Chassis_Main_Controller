@@ -94,21 +94,21 @@ void CAN1_RX0_IRQHandler(void)
 				break;
 			
             /* ---- 超级电容反馈 ---- */
-			case 0x400:
-            //     Capacitor_Cnt = OS_TIME();
-            //     capacitor_msg.CAP_Vol  = ( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
-            //     capacitor_msg.CAP_VOut  = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-            //    CAP_current[4] = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-			// 	capacitor_msg.Pow_In = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
-            //     system_monitor.CAN_Rx_Capatitor_cnt++;
+			case 0x400: // TODO 需要知道具体的CANID
+                Capacitor_Cnt = OS_TIME();
+                GSTCH_Capacitor.CAP_Vol  = ( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
+                GSTCH_Capacitor.CAP_VOut  = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
+                CAP_current[4] = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
+				GSTCH_Capacitor.Pow_In = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
+                GST_SystemMonitor.CapacitorRx_cnt++;
                 break;
 			case 0x401:
-					// CAP_current[0] = (s16)( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
-					// CAP_current[1] = (s16)( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-					// CAP_current[2] = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
-					// CAP_current[3] = (s16)( ( CAN_RxMsg.Data[6] << 8 ) | (CAN_RxMsg.Data[7] ) ) / 100.0f;
-					// system_monitor.CAN_Rx_Capatitor_cnt++;
-					break;
+                CAP_current[0] = (s16)( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
+                CAP_current[1] = (s16)( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
+                CAP_current[2] = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
+                CAP_current[3] = (s16)( ( CAN_RxMsg.Data[6] << 8 ) | (CAN_RxMsg.Data[7] ) ) / 100.0f;
+                GST_SystemMonitor.CapacitorRx_cnt++;
+                break;
 			default:
 				break;
         }
