@@ -94,14 +94,19 @@ void CAN1_RX0_IRQHandler(void)
 				break;
 			
             /* ---- 超级电容反馈 ---- */
-			case 0x400: // TODO 需要知道具体的CANID
+            case 0x400:
                 Capacitor_Cnt = OS_TIME();
-                GSTCH_Capacitor.CAP_Vol  = ( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
-                GSTCH_Capacitor.CAP_VOut  = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-                CAP_current[4] = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-				GSTCH_Capacitor.Pow_In = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
+                // 电容电压: Data[0-1], uint16, /100 -> V
+                GSTCH_Capacitor.CAP_Vol  = ((CAN_RxMsg.Data[0] << 8) | CAN_RxMsg.Data[1]) / 100.0f;
+                // 电池输出功率: Data[2-3], 需要根据实际协议确认
+                GSTCH_Capacitor.Pow_Out = ((CAN_RxMsg.Data[2] << 8) | CAN_RxMsg.Data[3]) / 100.0f;
+                // 电容输出电压: Data[2-3] 或 Data[4-5], 需确认协议
+                GSTCH_Capacitor.Volt_Out = ((CAN_RxMsg.Data[2] << 8) | CAN_RxMsg.Data[3]) / 100.0f;
+                // 电池输入功率: Data[4-5], int16, /100 -> W (可正可负)
+                GSTCH_Capacitor.Pow_In = (int16_t)((CAN_RxMsg.Data[4] << 8) | CAN_RxMsg.Data[5]) / 100.0f;
                 GST_SystemMonitor.CapacitorRx_cnt++;
                 break;
+
 			case 0x401:
                 CAP_current[0] = (s16)( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
                 CAP_current[1] = (s16)( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
