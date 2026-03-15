@@ -55,8 +55,8 @@ void CANTx_SendCurrentToMotor(void)
     if(GSTGM_Data.GimbalMode != GMMode_Disabled) //云台非失能模式
     {
         //云台电流
-        Pitch_Motor_Paras.Pitch_Current = (int16_t)Limit(GstGM_PitchVelPID.U,-(float)PitchMaxCurrent,+(float)PitchMaxCurrent);
-        Yaw_Motor_Paras.Yaw_Current = -(int16_t)Limit(GstGM_YawVelPID.U,-(float)YawMaxCurrent,+(float)YawMaxCurrent); //负号由云控方向决定，换车需修改
+        Pitch_Motor_Paras.Pitch_Current = -(int16_t)Limit(GstGM_PitchVelPID.U + Gravity_FeedForward,-(float)PitchMaxCurrent,+(float)PitchMaxCurrent);
+        Yaw_Motor_Paras.Yaw_Current = (int16_t)Limit(GstGM_YawVelPID.U,-(float)YawMaxCurrent,+(float)YawMaxCurrent); //负号由云控方向决定，换车需修改
         FrictionWheel_Left_Current  = (int16_t)Limit(smcL.fpU,-(float)ShooterMaxCurrent,+(float)ShooterMaxCurrent);
         FrictionWheel_Right_Current = (int16_t)Limit(smcR.fpU,-(float)ShooterMaxCurrent,+(float)ShooterMaxCurrent);
         GstSH_Paras.SupplyPellet_Current =  (int16_t)Limit(GstSH_SupplyPelletVelPID.U,-(float)SupplyPelletMaxCurrent,+(float)SupplyPelletMaxCurrent); 
@@ -71,10 +71,8 @@ void CANTx_SendCurrentToMotor(void)
     }
 
     /*云台与发射：*/
-    // CAN_Send(CAN1,0x1FF, -Pitch_Motor_Paras.Pitch_Current, FrictionWheel_Right_Current, FrictionWheel_Left_Current, GstSH_Paras.SupplyPellet_Current);
-	// CAN_Send(CAN1,0x2FF, 0, Yaw_Motor_Paras.Yaw_Current, 0, 0);
-
-    CAN_Send(CAN1,0x1FF, -Pitch_Motor_Paras.Pitch_Current, 0.0f, 0.0f, 0.0f);
+    CAN_Send(CAN1,0x1FF, Pitch_Motor_Paras.Pitch_Current, FrictionWheel_Right_Current, FrictionWheel_Left_Current, GstSH_Paras.SupplyPellet_Current);
+	CAN_Send(CAN1,0x2FF, 0, Yaw_Motor_Paras.Yaw_Current, 0, 0);
 
     /*底盘：发送轮毂电机电流*/
     CAN_Send(CAN2,0x200, GSTCH_HM2.CurrentDes, GSTCH_HM1.CurrentDes, 0, 0);

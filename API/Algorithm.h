@@ -278,4 +278,17 @@ void TD_Function(TD *ptd);
 // 云台发射调试相关函数全家桶
 void Test_TargetAutoAlter(Debug_TargetAutoAlter_StructTypeDef *stTest, float *target);
 
+// 拨轮上拨时长判断底盘模式切换/摩擦轮状态切换函数
+void IS_StandUpSitDown_or_SwitchFrictionWheel(void);
+
+// 视觉通信相关函数
+float Angle_180_To_Inf(float angle);
+float Angle_Inf_To_90(float angle);
+float Angle_Inf_To_180(float angle);
+float Angle_Inf_To_360(float angle);
+
+// 键鼠相关控制逻辑
+bool IS_Key_ShortClick(Key_Pressed_Paras_StructTypeDef *Key_Paras);
+bool IS_Key_LongClick(Key_Pressed_Paras_StructTypeDef  *Key_Paras);
+
 #endif

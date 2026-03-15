@@ -38,7 +38,7 @@ bool _Is_Any_to_Safe(void)
 // Safe -> RC:
 bool _Is_Safe_to_RC(void)
 {
-    if(GSTGM_Data.GimbalMode != GMMode_Disabled && GSTGM_Data.GimbalMode != GMMode_KeyMouse)
+    if(GEMGM_Mode == GMMode_RC_Free)
     {return true;}
     else
     {return false;}
@@ -47,21 +47,10 @@ bool _Is_Safe_to_RC(void)
 // Safe -> KeyMouse: 
 bool _Is_Safe_to_KeyMouse(void)
 {
-    if(GSTGM_Data.GimbalMode == GMMode_KeyMouse)
+    if(GEMGM_Mode == GMMode_KeyMouse)
     {return true;}
-    return false;
-}
-
-// RC -> KeyMouse: 
-bool _Is_RC_to_KeyMouse(void)
-{
-    return false;
-}
-
-// KeyMouse -> RC: 
-bool _Is_KeyMouse_to_RC(void)
-{
-    return false;
+    else
+    {return false;}
 }
 
 /**
@@ -89,32 +78,30 @@ SHMode_EnumTypeDef Shooter_ModeChoose(void)
     /***** Layer 2: 状态机流转 (Switch-Case) *****/
     switch (CurrentMode)
     {
-        /* --- 遥控器模式 --- */
+        /* --- 安全模式 --- */
         case SHMode_Safe:
-            if(_Is_Safe_to_RC())                             NextMode = SHMode_RC;
-            else if(_Is_Safe_to_KeyMouse())                  NextMode = SHMode_KeyMouse;
-            else                                             NextMode = SHMode_Safe;
+            if(_Is_Safe_to_RC())                            NextMode = SHMode_RC;
+            else if(_Is_Safe_to_KeyMouse())                 NextMode = SHMode_KeyMouse;
+            else                                            NextMode = SHMode_Safe;
             break;
 
         /* --- 遥控器模式 --- */
         case SHMode_RC:
-            if(_Is_RC_to_KeyMouse())                         NextMode = SHMode_KeyMouse;
-            else                                             NextMode = SHMode_RC;
+                                                            NextMode = SHMode_RC;
             break;
 
         /* --- 键鼠模式 --- */
         case SHMode_KeyMouse:
-            if(_Is_KeyMouse_to_RC())                         NextMode = SHMode_RC;
-            else                                             NextMode = SHMode_KeyMouse;
+                                                            NextMode = SHMode_KeyMouse;
             break;
 
         default:
-            NextMode = SHMode_Safe;
+                                                            NextMode = SHMode_Safe;
             break;
     }
 
     return NextMode;
-} 
+}
 
 
 /********************* 根据模式控制 **********************/
@@ -126,8 +113,21 @@ SHMode_EnumTypeDef Shooter_ModeChoose(void)
 */
 void SHCtrl_Safe(void)
 {
-    ShooterSafetyLocked = true;	//安全锁打开，防止误打弹
-    SupplyStep = (-1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    /*安全锁打开，防止误打弹*/
+    ShooterSafetyLocked = true;
+    SupplyStep = (1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    /***********************前置处理**************************/
+    /*状态切换*/
+    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
+    {
+        PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
+		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
+		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
+		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
+		SupplyPellet_TD.x2 = 0.0f;
+        
+		//TODO：摩擦轮前置处理
+    }
 
     FrictionWheel_Safe();
 
@@ -143,7 +143,19 @@ void SHCtrl_Safe(void)
 */
 void SHCtrl_Debug(void)
 {
-    SupplyStep = (-1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    SupplyStep = (1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    /***********************前置处理**************************/
+    /*状态切换*/
+    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
+    {
+		PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
+		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
+		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
+		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
+		SupplyPellet_TD.x2 = 0.0f;
+
+		//TODO：摩擦轮前置处理
+    }
 
     FrictionWheel_Debug();
 
@@ -159,12 +171,24 @@ void SHCtrl_Debug(void)
 */
 void SHCtrl_RC(void)
 {
-    SupplyStep = (-1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    SupplyStep = (1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    /***********************前置处理**************************/
+    /*状态切换*/
+    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
+    {
+		PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
+		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
+		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
+		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
+		SupplyPellet_TD.x2 = 0.0f;
+
+		//TODO：摩擦轮前置处理
+    }
     
     FrictionWheel_RCCtrl();
 
     SupplyPellet_RCCtrl(); //拨弹电机闭环控制
-	// Bullet_Blocked_Protection(); //卡弹保护
+	Bullet_Blocked_Protection(); //卡弹保护
 }
 
 /**
@@ -175,12 +199,24 @@ void SHCtrl_RC(void)
 */
 void SHCtrl_KeyMouse(void)
 {
-    SupplyStep = (-1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    SupplyStep = (1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    /***********************前置处理**************************/
+    /*状态切换*/
+    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
+    {
+		PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
+		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
+		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
+		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
+		SupplyPellet_TD.x2 = 0.0f;
+
+		//TODO：摩擦轮前置处理
+    }
     
     FrictionWheel_KeyMouseCtrl();
 
     SupplyPellet_KeyMouseCtrl(); //拨弹电机闭环控制
-	// Bullet_Blocked_Protection(); //卡弹保护
+	Bullet_Blocked_Protection(); //卡弹保护
 }
 
 /**

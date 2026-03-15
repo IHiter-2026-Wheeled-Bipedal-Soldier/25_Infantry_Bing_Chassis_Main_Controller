@@ -101,6 +101,8 @@ void UA4Rx_IMU2DataProcess(void);
 void UA4Tx_SendDataToIMU2(void);
 void UA5Rx_RefereeDataProcess(void);
 void UA5Tx_SendDataToReferee(void);
+void UA6Rx_VisionDataProcess(void);
+void UA6Tx_SendDataToVision(void);
 void MonitorDataDeal(uint16_t usCmdID);
 void Rc_RsysProtocol(void); //裁判系统协议解析
 uint32_t Verify_CRC8_Check_Sum(uint8_t *pchMessage, uint32_t dwLength);

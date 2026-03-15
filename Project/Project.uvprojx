@@ -459,6 +459,16 @@
               <FileType>5</FileType>
               <FilePath>..\API\General_AuxiliaryFunc.h</FilePath>
             </File>
+            <File>
+              <FileName>SuperCapacitor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\API\SuperCapacitor.c</FilePath>
+            </File>
+            <File>
+              <FileName>SuperCapacitor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\API\SuperCapacitor.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

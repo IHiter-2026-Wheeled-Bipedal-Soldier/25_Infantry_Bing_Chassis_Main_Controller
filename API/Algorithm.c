@@ -1361,10 +1361,12 @@ void TD_Function(TD *ptd)
 
 //#region云台调试模式相关函数
 /**
-  * @brief  获取TD的输出值函数
-  * @note   用来获取TD结构体中的输出值x1
-  * @param  TDptr：TD_StructTypeDef类型的指针，要获取的TD结构体指针
-  * @retval TD的输出值x1，即平滑跟踪值
+  * @brief  云台目标值自动设定函数
+  * @note   通过设定云台电机对应的目标设定变量，来实现获得自动阶跃（或一次/正弦）形式的目标值
+  *         目标值为增量形式
+  * @param  stTest：目标设定变量
+  * @param  target：所设定目标值的指针
+  * @retval 无
 */
 void Test_TargetAutoAlter(Debug_TargetAutoAlter_StructTypeDef *stTest, float *target)
 {
@@ -1408,5 +1410,195 @@ void Test_TargetAutoAlter(Debug_TargetAutoAlter_StructTypeDef *stTest, float *ta
 	{
 		stTest->TimeCnt = 0;
 	}
+}
+//#endregion
+
+void IS_StandUpSitDown_or_SwitchFrictionWheel(void)
+{
+    /*清除历史标志位记录*/
+    Gst_CHSH_RollerMode_Paras.ChassisMode_Flag  = 0;
+    Gst_CHSH_RollerMode_Paras.FrictionMode_Flag = 0;
+
+    // 获取当前滚轮状态（上拨=1，回正=0）
+    Gst_CHSH_RollerMode_Paras.RollerUp_Now_status = (GST_Receiver.ST_RC.Roller <= RCRoller_UpTH) ? 1 : 0;
+
+    // 边沿检测：从上拨变为回正（下降沿）
+    if(Gst_CHSH_RollerMode_Paras.RollerUp_Now_status == 0 && Gst_CHSH_RollerMode_Paras.RollerUp_Pre_status == 1)
+    {
+		Gst_CHSH_RollerMode_Paras.RollerTriger_Flag = 1;
+    }
+    else
+    {
+        Gst_CHSH_RollerMode_Paras.RollerTriger_Flag = 0;// 非边沿情况，清除Roller触发标志
+    }
+
+    //拨动时间判断
+    if(Gst_CHSH_RollerMode_Paras.RollerTriger_Flag == 1)
+    {
+        if(Gst_CHSH_RollerMode_Paras.RollerUp_Cnt > 800)    //连续拨动时间超过0.8s
+        {
+            Gst_CHSH_RollerMode_Paras.ChassisMode_Flag = 1;  //进入底盘的StandUp或SitDown模式
+        }
+        else                                                 //连续拨动时间未超过0.8s
+        {
+            Gst_CHSH_RollerMode_Paras.FrictionMode_Flag = 1; //进入摩擦轮的启动或刹停模式
+        }
+    }
+    else
+    {
+        Gst_CHSH_RollerMode_Paras.ChassisMode_Flag  = 0;
+        Gst_CHSH_RollerMode_Paras.FrictionMode_Flag = 0;
+    }
+	
+    // Roller计数器
+    if(GST_Receiver.ST_RC.Roller <= RCRoller_UpTH) //遥控器滚轮上拨
+    {
+        Gst_CHSH_RollerMode_Paras.RollerUp_Cnt++;
+    }
+    else
+    {
+        Gst_CHSH_RollerMode_Paras.RollerUp_Cnt = 0;
+    }
+
+    // 更新上一状态
+    Gst_CHSH_RollerMode_Paras.RollerUp_Pre_status = Gst_CHSH_RollerMode_Paras.RollerUp_Now_status;
+}
+
+//#region 视觉通信相关算法
+
+float Angle_180_To_Inf(float angle)
+{
+    static float Angle_Pre = 0;
+    float val;
+
+    if( Angle_Pre - angle > 180 )
+        val += (angle-Angle_Pre) + 360;
+    else if( angle - Angle_Pre > 180 )
+        val += (angle-Angle_Pre) - 360;
+    else
+        val += (angle-Angle_Pre);
+
+    Angle_Pre = angle;
+    return val;
+}
+
+float Angle_Inf_To_90(float angle)
+{
+    if(fabs(angle)>1800000) return 0;
+    else
+    {
+        int temp = ((int)angle)/90;
+        angle -= 90.0f*temp;
+        if(angle>+45) angle-=90;
+        else if(angle<-45) angle+=45;
+        return angle;
+    }
+}
+
+float Angle_Inf_To_180(float angle)
+{
+    if(fabs(angle)>1800000) return 0;
+    else
+    {
+        int temp = ((int)angle)/360;
+        angle -= 360.0f*temp;
+        if(angle>+180) angle-=360;
+        else if(angle<-180) angle+=360;
+        return angle;
+    }
+}
+
+float Angle_Inf_To_360(float angle)
+{
+    angle = Angle_Inf_To_180(angle);
+    if(angle < 0)
+    {
+        angle += 360;
+    }
+    return angle;
+}
+//#endregion
+
+//#region 键鼠相关控制逻辑
+/**
+  * @brief  按键短按判断函数
+  * @note   按键持续时间小于500ms为短按，否则为非短按
+  * @param  Key_Paras：按键参数结构体，包含当前按键状态、上一按键状态、短按计数器和短按标志等信息
+  * @retval ShortClick_Flag。true为短按，false为非短按
+*/
+bool IS_Key_ShortClick(Key_Pressed_Paras_StructTypeDef *Key_Paras)
+{
+    if(Key_Paras->Key_Now == true)
+    {
+        if(Key_Paras->Key_Pre == false) //上升沿检测
+        {
+            Key_Paras->ShortClick_Flag = 0;
+            Key_Paras->ShortClick_cnt = 0;
+        }
+        else
+        {
+            Key_Paras->ShortClick_Flag = 0;
+            Key_Paras->ShortClick_cnt++;
+        }
+    }
+    else
+    {
+        if(Key_Paras->Key_Pre == true) //下降沿检测
+        {
+            if(Key_Paras->ShortClick_cnt > 0 && Key_Paras->ShortClick_cnt < 500) //按键持续时间小于500ms，认为是短按
+            {Key_Paras->ShortClick_Flag = 1;}
+            else //否则不认为是短按
+            {Key_Paras->ShortClick_Flag = 0;}
+            Key_Paras->ShortClick_cnt = 0;
+        }
+        else
+        {
+            Key_Paras->ShortClick_Flag = 0;
+            Key_Paras->ShortClick_cnt  = 0;
+        }
+    }
+
+    return Key_Paras->ShortClick_Flag;
+}
+
+/**
+  * @brief  按键长按判断函数
+  * @note   按键持续时间大于等于500ms为长按，否则为非长按
+  * @param  Key_Paras：按键参数结构体，包含当前按键状态、上一按键状态、长按计数器和长按标志等信息
+  * @retval LongClick_Flag。true为长按，false为非长按
+*/
+bool IS_Key_LongClick(Key_Pressed_Paras_StructTypeDef *Key_Paras)
+{
+    if(Key_Paras->Key_Now == true)
+    {
+        if(Key_Paras->Key_Pre == false) //上升沿检测
+        {
+            Key_Paras->LongClick_Flag = 0;
+            Key_Paras->LongClick_cnt = 0;
+        }
+        else
+        {
+            Key_Paras->LongClick_Flag = 0;
+            Key_Paras->LongClick_cnt++;
+        }
+    }
+    else
+    {
+        if(Key_Paras->Key_Pre == true) //下降沿检测
+        {
+            if(Key_Paras->LongClick_cnt >= 500) //按键持续时间大于等于500ms，认为是长按
+            {Key_Paras->LongClick_Flag = 1;}
+            else //否则不认为是长按
+            {Key_Paras->LongClick_Flag = 0;}
+            Key_Paras->LongClick_cnt = 0;
+        }
+        else
+        {
+            Key_Paras->LongClick_Flag = 0;
+            Key_Paras->LongClick_cnt  = 0;
+        }
+    }
+
+    return Key_Paras->LongClick_Flag;
 }
 //#endregion

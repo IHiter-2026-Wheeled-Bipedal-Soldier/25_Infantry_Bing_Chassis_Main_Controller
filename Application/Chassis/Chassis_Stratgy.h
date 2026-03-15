@@ -53,16 +53,22 @@ bool _ChIsEnter_OffGroundMode_RCControl(Chassis_ModeChooseParameter_StructTypeDe
 
 //* 模式具体功能实现函数
 void CH_RCInputPre_Process(void);
-void ChModeControl_AutoSafeMode_RCControl(void);
-void ChModeControl_ManualSafeMode_RCControl(void);
-void ChModeControl_StandUpMode_RCControl(void);
-void ChModeControl_StandbyMode_RCControl(void);
-void ChModeControl_SitDownMode_RCControl(void);
-void ChModeControl_FreeMode_RCControl(void);
-void ChModeControl_FollowMode_RCControl(void);
+void ChModeControl_AutoSafeMode_Ctrl(void);
+void ChModeControl_ManualSafeMode_Ctrl(void);
+
+void ChModeControl_RCStandbyMode_Ctrl(void);
+void ChModeControl_RCStandUpMode_Ctrl(void);
+void ChModeControl_RCSitDownMode_Ctrl(void);
+void ChModeControl_RCFreeMode_Ctrl(void);
+void ChModeControl_RCFollowMode_Ctrl(void);
+void ChModeControl_KeyMouseStandbyMode_Ctrl(void);
+void ChModeControl_KeyMouseStandUpMode_Ctrl(void);
+void ChModeControl_KeyMouseSitDownMode_Ctrl(void);
+void ChModeControl_KeyMouseFollowMode_Ctrl(void);
+
 void ChModeControl_OffGroundMode_RCControl(void);
 void ChModeControl_JumpMode_RCControl(void);
 
 //* 模式控制最终执行函数
-void ChassisModeControl_RCControl(ChassisMode_EnumTypeDef ModeNow);
+void ChassisModeControl_Ctrl(ChassisMode_EnumTypeDef ModeNow);
 #endif

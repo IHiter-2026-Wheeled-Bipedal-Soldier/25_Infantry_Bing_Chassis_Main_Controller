@@ -36,7 +36,7 @@ SHData_StructTypeDef GSTSH_Data;     //发射正式数据结构体，存放和�
 bool ShooterSafetyLocked = false;	     //发射安全锁，防止误打弹
 bool FrictionWheel_Ready_flag = false; //摩擦轮准备完毕标志位
 uint8_t FWSpeed_Des  = 25;             //目标弹速（比赛规则要求，测速模块进行测量）
-float FWSpeed_Datum = 5500;	           //摩擦轮目标转速（需要进行实测，每场比赛前标弹速）
+float FWSpeed_Datum = 7000;	           //摩擦轮目标转速（需要进行实测，每场比赛前标弹速）
 float FWSpeed_Datum_Buff = 6300;	     //打符摩擦轮目标转速（打符时默认不对摩擦轮转速进行适应性更改）
 
 #define ST_SMC_INIT(fpUMax,b,eps,gain,dead,TD_r,TD_h,TD_T) \

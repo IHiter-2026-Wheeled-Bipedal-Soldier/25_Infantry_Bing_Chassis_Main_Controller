@@ -17,6 +17,7 @@
 #include "GlobalDeclare_General.h"
 #include "GlobalDeclare_Chassis.h"
 #include "GlobalDeclare_Shooter.h"
+#include "SuperCapacitor.h"
 #include "Gimbal_Task.h"
 
 /**
@@ -42,6 +43,8 @@ void CAN1_TX_IRQHandler(void)
 void CAN1_RX0_IRQHandler(void)
 {
     CanRxMsg CAN_RxMsg;
+    
+    float Yaw_AngleFB_temp = 0.0f; //临时变量，存储Yaw角度反馈
 
     if(CAN_GetITStatus(CAN1, CAN_IT_FMP0) == SET)
     {
@@ -60,19 +63,16 @@ void CAN1_RX0_IRQHandler(void)
 				GST_SystemMonitor.PitchMotorRx_cnt++;
 				break;
             case 0x20A:  //Yaw电机 ID:6
-				// Abs_Encoder_Process(&g_stYawEncoder, Get_Encoder_Number( &CAN_RxMsg ) );
-				// Yaw_Angle = ( g_stYawEncoder.siSumValue ) / 8192.0f * 360.0f ;
-                
+                //TODO：老代码有Benjamin_Position_Revise，即手动标定偏航零点
+				Abs_Encoder_Process(&g_stYawEncoder, (CAN_RxMsg.Data[0]<<8 | CAN_RxMsg.Data[1]));
+				Yaw_AngleFB_temp = (g_stYawEncoder.siSumValue)/8192.0f*360.0f; //Yaw反馈角度，单位度
+                GstCH_FollowMode_Paras.RelativeYawAngle = Angle_Inf_To_180(Yaw_AngleFB_temp - GstCH_FollowMode_Paras.YawZeroPoint);
 				// if( PRESSED_SHIFT && PRESSED_F && ( Vision_State_Now & Vision_Cmd_Mask ) == Vision_Disable )
 				// Benjamin_Position_Revise = Angle_Inf_To_180( Yaw_Angle - YawEncoderZero_Norm);
-                
-				// Benjamin_Position = Angle_Inf_To_180( Angle_Inf_To_180( Yaw_Angle - YawEncoderZero_Norm ) - Benjamin_Position_Revise ) ;
-				// Benjamin_Position_Revise_Absolute = Angle_Inf_To_180( Yaw_Angle - YawEncoderZero_Norm );
-				// Benjamin_Position_Absolute = Angle_Inf_To_180( Angle_Inf_To_180( Yaw_Angle - YawEncoderZero_Norm_Absolute ) - Benjamin_Position_Revise ) ;
 				GST_SystemMonitor.YawMotorRx_cnt++;
 				break;
             
-            /* ---- 摩擦轮电机反馈 ---- */
+            /* ---- 发射电机反馈 ---- */
 			case 0x206:	//右摩擦轮 ID:6
 				Abs_Encoder_Process(&g_stCMREncoder, (CAN_RxMsg.Data[0]<<8 | CAN_RxMsg.Data[1]));
 				smcR.fpFB=Get_Speed(&CAN_RxMsg);
@@ -89,26 +89,18 @@ void CAN1_RX0_IRQHandler(void)
 				Abs_Encoder_Process(&g_stShooterEncoder, (CAN_RxMsg.Data[0]<<8 | CAN_RxMsg.Data[1]));
 				GstSH_Paras.SupplyPellet_PosFB = g_stShooterEncoder.siSumValue*360.0f/8192.0f/36.0f; //拨弹电机位置反馈，单位度（注意是减速箱输出端的角度）
 				GstSH_Paras.SupplyPellet_VelFB = ((int16_t)(CAN_RxMsg.Data[2]<<8 | CAN_RxMsg.Data[3]))*6.0f/36.0f; //拨弹电机速度反馈，单位度/s（注意是减速箱输出端的角速度）
-				// Shooter_Torque=CAN_RxMsg.Data[4]<<8 | CAN_RxMsg.Data[5];
+				GstSH_Paras.SupplyPellet_TorqueFB = CAN_RxMsg.Data[4]<<8 | CAN_RxMsg.Data[5]; //拨弹电机力矩反馈值，单位Nm（注意不是减速箱输出端力矩）
 				GST_SystemMonitor.SupplyPelletRx_cnt++;
 				break;
 			
             /* ---- 超级电容反馈 ---- */
-			case 0x400:
-            //     Capacitor_Cnt = OS_TIME();
-            //     capacitor_msg.CAP_Vol  = ( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
-            //     capacitor_msg.CAP_VOut  = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-            //    CAP_current[4] = ( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-			// 	capacitor_msg.Pow_In = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
-            //     system_monitor.CAN_Rx_Capatitor_cnt++;
+            case 0x400:
+                GSTCH_Capacitor.CAP_Vol   = (s16)( (CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1]) ) / 100.0f;//电容电压
+                GSTCH_Capacitor.Pow_Out   = (s16)( (CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5]) ) / 100.0f;//电池输出
+                GSTCH_Capacitor.Volt_Out  = (s16)( (CAN_RxMsg.Data[6] << 8 ) | (CAN_RxMsg.Data[7]) ) / 100.0f;//电容输出
+                GSTCH_Capacitor.Pow_In    = (s16)( (CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3]) ) / 100.0f;//电池输出
+                GST_SystemMonitor.CapatitorRx_cnt++;
                 break;
-			case 0x401:
-					// CAP_current[0] = (s16)( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
-					// CAP_current[1] = (s16)( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-					// CAP_current[2] = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
-					// CAP_current[3] = (s16)( ( CAN_RxMsg.Data[6] << 8 ) | (CAN_RxMsg.Data[7] ) ) / 100.0f;
-					// system_monitor.CAN_Rx_Capatitor_cnt++;
-					break;
 			default:
 				break;
         }
@@ -374,6 +366,53 @@ void UART5_IRQHandler(void)
         UA5Rx_RefereeDataProcess();        //裁判系统数据的接收、处理
         GST_SystemMonitor.UART5Rx_cnt++;
 
+}
+
+/**
+  * @brief  判断串口6单次接收是否完成的函数
+  * @note   判断原理就是DMA每传输一个数据，它的数据传输计数器就会减1
+  *         USART6Rx使用的DMA配置为循环模式，减到0后会自动变回设定的重装值UA6RxDMAbuf_LEN，此时一次接收结束
+  *         所以只需要看DMA的DataCounter就知道单次接收是否结束了
+  * @param  无
+  * @retval true：单次接收结束  false：单次接收未结束
+*/
+bool __IsUSART6SingleRecOK(void)
+{
+
+    if(DMA_GetCurrDataCounter(USART6_RX_STREAM) == UA6RxDMAbuf_LEN)
+    {return true;}
+
+    else
+    {return false;}
+}
+/**
+  * @brief  串口6的中断服务函数，作为和辅瞄小电脑的通讯
+  * @note   
+  * @param  无
+  * @retval 无
+*/
+void USART6_IRQHandler(void)
+{
+    /****************************如果不是IDLE中断直接返回****************************/
+    if(USART_GetITStatus(USART6, USART_IT_IDLE) != SET)
+    {return;}
+
+    /****************************先读SR后读DR，清除IDLE中断标志位****************************/
+    USART6->SR;
+    USART6->DR;
+
+    /****************************串口6数据接收、解析****************************/
+    if(__IsUSART6SingleRecOK())
+    {
+        UA6Rx_VisionDataProcess();
+        GST_SystemMonitor.USART6Rx_cnt++;
+    }
+    else
+    {
+        DMA_Cmd(USART6_RX_STREAM, DISABLE);         //设置当前计数值前先禁用DMA
+        USART6_RX_STREAM->NDTR = UA6RxDMAbuf_LEN;   //设置当前待发的数据的数量:Number of Data units to be TRansferred
+        DMA_Cmd(USART6_RX_STREAM, ENABLE);          //启用串口DMA接收
+    }
 }
 
 /**

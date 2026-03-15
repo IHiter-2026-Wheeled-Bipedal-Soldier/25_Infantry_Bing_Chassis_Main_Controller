@@ -15,6 +15,7 @@
 #include "GlobalDeclare_General.h"
 #include "GlobalDeclare_Chassis.h"
 #include "GlobalDeclare_Gimbal.h"
+#include "GlobalDeclare_Shooter.h"
 #include "DebugTask.h"
 
 /*临时添加的头文件，用完就可以删掉或者注释掉*/
@@ -80,16 +81,16 @@ void VofaPrint(void)
 {
     USART3_DMA_printf
     ("C:%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\r\n",
-/*0*/   (float)Pitch_Motor_Paras.PosFB,
-/*1*/   (float)PitchTD.v,
-/*2*/   (float)PitchTD.x1,
-/*3*/   (float)Yaw_Motor_Paras.PosFB,
-/*4*/   (float)YawTD.v,
-/*5*/   (float)YawTD.x1,
-/*6*/   (float)GstCH_LegLen1PID.U,
-/*7*/   (float)JumpPhase * 10.0f,
-/*8*/   (float)GstCH_LegLen1PID.FB,
-/*9*/   (float)GEMCH_Mode * 10.0f
+/*0*/   (float)KeyMouse_SST_Yaw * (float)GST_Receiver.ST_Mouse.X / 32768.0f,
+/*1*/   (float)KeyMouse_SST_Yaw * (float)GST_Receiver.ST_Mouse.Y / 32768.0f,
+/*2*/   (float)GEMCH_Mode * 10.0f,
+/*3*/   (float)Yaw_Motor_Paras.PosDes,
+/*4*/   (float)Yaw_Motor_Paras.PosFB,
+/*5*/   (float)GST_SystemMonitor.SupplyPelletRx_fps,
+/*6*/   (float)SupplyPellet_TD.v,
+/*7*/   (float)SupplyPellet_TD.x1,
+/*8*/   (float)GstSH_Paras.SupplyPellet_PosFB,
+/*9*/   (float)GstCH_FollowMode_Paras.RelativeYawAngle
     );
 }
 
@@ -155,6 +156,9 @@ void AllTaskFpsCount(void)
     GST_SystemMonitor.SupplyPelletRx_fps = GST_SystemMonitor.SupplyPelletRx_cnt;
     GST_SystemMonitor.SupplyPelletRx_cnt = 0;
 
+    GST_SystemMonitor.CapatitorRx_fps = GST_SystemMonitor.CapatitorRx_cnt;
+    GST_SystemMonitor.CapatitorRx_cnt = 0;
+
     /************串口帧率统计************/
     GST_SystemMonitor.USART1Rx_fps = GST_SystemMonitor.USART1Rx_cnt;
     GST_SystemMonitor.USART1Rx_cnt = 0;
@@ -168,6 +172,8 @@ void AllTaskFpsCount(void)
     GST_SystemMonitor.UART5Rx_cnt = 0;
     GST_SystemMonitor.USART6Rx_fps = GST_SystemMonitor.USART6Rx_cnt;
     GST_SystemMonitor.USART6Rx_cnt = 0;
+    GST_SystemMonitor.USART6Tx_fps = GST_SystemMonitor.USART6Tx_cnt;
+    GST_SystemMonitor.USART6Tx_cnt = 0;
 
     /************其他任务帧率统计************/
     GST_SystemMonitor.ChassisTask_fps = GST_SystemMonitor.ChassisTask_cnt;

@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
   * @file    Gimbal_Stratgy.c
-  * @author  26赛季，平衡步兵电控，马帅
-  * @date    2026.1.10
+  * @author  26赛季，平衡步兵电控，苏文远
+  * @date    2026.3.8
   * @brief   云台模式选择及控制主逻辑
   ******************************************************************************
 */
@@ -15,9 +15,9 @@
 #include "TIM_Config.h"
 #include <arm_math.h>
 
+
 //#region /*******************************云台模式选择与更新相关函数********************************************/
 /********************* 模式切换 **********************/
-
 // 任意状态 -> Debug: GstGMSH_Debug_Flags的云台测试标志位置1
 bool _Is_Gimbal_Debug(void)
 {
@@ -30,7 +30,7 @@ bool _Is_Gimbal_Debug(void)
 // 任意状态 -> Disabled: 左拨杆在下且右拨杆在上
 bool _Is_Any_to_Disabled(void)
 {
-    if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
+    if(GEMCH_Mode == CHMode_ManualSafe || GEMCH_Mode == CHMode_AutoSafe)
     {return true;}
     else
     {return false;}
@@ -39,102 +39,73 @@ bool _Is_Any_to_Disabled(void)
 // Disabled -> RC_Free: 
 bool _Is_Disabled_to_RCFree(void)
 {
-    if(GEMCH_Mode == CHMode_RC_Standby || GEMCH_Mode == CHMode_RC_StandUp || GEMCH_Mode == CHMode_RC_Jump
-       || GEMCH_Mode == CHMode_RC_Free || GEMCH_Mode == CHMode_RC_SitDown || GEMCH_Mode == CHMode_RC_OffGround)
-    {
-        return true;
-    }
-    return false;
+    if(GEMCH_Mode == CHMode_RC_Standby)// || GEMCH_Mode == CHMode_RC_StandUp || GEMCH_Mode == CHMode_RC_Jump || GEMCH_Mode == CHMode_RC_Free || GEMCH_Mode == CHMode_RC_SitDown || GEMCH_Mode == CHMode_RC_OffGround
+    {return true;}
+    else
+    {return false;}
 }
 
 // Disabled -> RC_Follow: 底盘进入Follow模式
 bool _Is_Disabled_to_RCFollow(void)
 {
     if(GEMCH_Mode == CHMode_RC_Follow)
-    {
-        return true;
-    }
-    return false;
+    {return true;}
+    else
+    {return false;}
 }
 
 // Disabled -> KeyMouse: 底盘进入非安全模式(键鼠模式)
 bool _Is_Disabled_to_KeyMouse(void)
 {
-    // if(GEMCH_Mode != CHMode_RC_ManualSafe && GEMCH_Mode != CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
-    return false;
+    if(GEMCH_Mode == CHMode_KeyMouse_Standby)
+    {return true;}
+    else
+    {return false;}
+}
+
+// Disabled -> KeyMouse: 底盘进入非安全模式(键鼠模式)
+bool _Is_Disabled_to_AutoAim(void)
+{
+    if(GEMCH_Mode == CHMode_RC_Standby)
+    {return true;}
+    else
+    {return false;}
 }
 
 // RC_Free -> RC_Follow: 底盘模式切换
 bool _Is_RCFree_to_Follow(void)
 {
     if(GEMCH_Mode == CHMode_RC_Follow)
-    {
-        return true;
-    }
-    return false;
+    {return true;}
+    else
+    {return false;}
 }
 
 // RC_Follow -> RC_Free: 底盘模式切换
 bool _Is_RCFollow_to_Free(void)
 {
     if(GEMCH_Mode == CHMode_RC_Free)
-    {
-        return true;
-    }
-    return false;
+    {return true;}
+    else
+    {return false;}
 }
 
-// RC_Free -> KeyMouse: 接收到鼠标左键信号
-bool _Is_RCFree_to_KeyMouse(void)
+// RC_Free -> AutoAim: 视觉找到目标，并且视觉小电脑接收帧率正常
+bool _Is_RCFree_to_AutoAim(void)
 {
-    if(GST_Receiver.ST_Mouse.Left == 1)
-    {
-        return true;
-    }
-    return false;
-}
-
-// RC_Follow -> KeyMouse: 键鼠进入(底盘进入非安全模式)
-bool _Is_RCFollow_to_KeyMouse(void)
-{
-    // if(GEMCH_Mode != CHMode_RC_ManualSafe && GEMCH_Mode != CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
-    return false;
-}
-
-// KeyMouse -> RC_Free: 键鼠退出(底盘进入安全模式)
-bool _Is_KeyMouse_to_RCFree(void)
-{
-    // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
-    return false;
-}
-
-// KeyMouse -> RC_Follow: 键鼠退出(底盘进入安全模式)
-bool _Is_KeyMouse_to_RCFollow(void)
-{
-    // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
-    return false;
+    if(GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == true && GST_SystemMonitor.USART6Rx_fps >= 10)
+    {return true;}
+    else
+    {return false;}
 }
 
 // KeyMouse -> AutoAim: 鼠标右键开启辅瞄
 bool _Is_KeyMouse_to_AutoAim(void)
 {
-    // if(GstGM_MainCtrl.ST_Rx.ST_Mouse.Right == 1)
-    // {
-    //     return true;
-    // }
-    return false;
+    if(GST_Receiver.ST_Mouse.Right == 1 && GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == true && GST_SystemMonitor.USART6Rx_fps >= 10)
+    {return true;}
+    else
+    {return false;}
 }
 
 // KeyMouse -> Buff_Small: F键激活小符
@@ -180,31 +151,28 @@ bool _Is_KeyMouse_to_Buff_Interfere_Big(void)
 // AutoAim -> KeyMouse: 鼠标右键关闭辅瞄
 bool _Is_AutoAim_to_KeyMouse(void)
 {
-    // if(GstGM_MainCtrl.ST_Rx.ST_Mouse.Right == 0)
-    // {
-    //     return true;
-    // }
-    return false;
+    if(GEMCH_Mode == CHMode_KeyMouse_Follow && GST_Receiver.ST_Mouse.Right == 0)
+    {return true;}
+    else
+    {return false;}
 }
 
-// AutoAim -> RC_Free: 底盘进入安全模式
+// AutoAim -> RC_Free: 视觉小电脑未找到目标
 bool _Is_AutoAim_to_RCFree(void)
 {
-    // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
-    return false;
+    if(GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == false || GST_SystemMonitor.USART6Rx_fps < 10)//GEMCH_Mode == CHMode_RC_Free && 
+    {return true;}
+    else
+    {return false;}
 }
 
 // AutoAim -> RC_Follow: 底盘进入安全模式
 bool _Is_AutoAim_to_RCFollow(void)
 {
-    // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
-    return false;
+    if(GEMCH_Mode == CHMode_RC_Follow && GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == false)
+    {return true;}
+    else
+    {return false;}
 }
 
 // Buff_Small -> KeyMouse: 再次按F键取消
@@ -357,29 +325,25 @@ GMMode_EnumTypeDef GimbalModeChoose(void)
         /* --- 失能模式 --- */
         case GMMode_Disabled:
             if(_Is_Disabled_to_RCFree())                     NextMode = GMMode_RC_Free;
-            else if(_Is_Disabled_to_RCFollow())              NextMode = GMMode_RC_Follow;
             else if(_Is_Disabled_to_KeyMouse())              NextMode = GMMode_KeyMouse;
             else                                             NextMode = GMMode_Disabled;
             break;
 
         /* --- 基本模式 --- */
-        //TODO：目前RC模式没有接入视觉辅助模式，后续可加可不加
+        //TODO：目前遥控器控制模式只接了AutoAim一个视觉辅助模式，后面可以再加入其他视觉辅助模式
         case GMMode_RC_Free:
             if(_Is_RCFree_to_Follow())                       NextMode = GMMode_RC_Follow;
-            else if(_Is_RCFree_to_KeyMouse())                NextMode = GMMode_KeyMouse;
+            else if(_Is_RCFree_to_AutoAim())                 NextMode = GMMode_AutoAim;
             else                                             NextMode = GMMode_RC_Free;
             break;
 
         case GMMode_RC_Follow:
             if(_Is_RCFollow_to_Free())                       NextMode = GMMode_RC_Free;
-            else if(_Is_RCFollow_to_KeyMouse())              NextMode = GMMode_KeyMouse;
             else                                             NextMode = GMMode_RC_Follow;
             break;
 
         case GMMode_KeyMouse:
-            if(_Is_KeyMouse_to_RCFree())                     NextMode = GMMode_RC_Free;
-            else if(_Is_KeyMouse_to_RCFollow())              NextMode = GMMode_RC_Follow;
-            else if(_Is_KeyMouse_to_AutoAim())               NextMode = GMMode_AutoAim;
+            if(_Is_KeyMouse_to_AutoAim())                    NextMode = GMMode_AutoAim;
             else if(_Is_KeyMouse_to_Buff_Small())            NextMode = GMMode_Buff_Small;
             else if(_Is_KeyMouse_to_Buff_Big())              NextMode = GMMode_Buff_Big;
             else if(_Is_KeyMouse_to_Buff_Interfere_Small())  NextMode = GMMode_Buff_Interfere_Small;
@@ -435,29 +399,31 @@ GMMode_EnumTypeDef GimbalModeChoose(void)
 
 //#region /*******************************根据云台模式进行控制相关函数********************************************/
 /**
-  * @brief  遥控器模式下，云台失能控制函数
+  * @brief  遥控器模式或键鼠模式下，云台失能控制函数
   * @note   自由模式下的控制策略
   * @param  无
   * @retval 无
 */
-void GM_RCCtrl_Disabled(void)
+void GM_Ctrl_Disabled(void)
 {
-    //TODO:需要通过Yaw电机的编码器角度来引入底盘相对于云台的零位
-
     /***********************前置处理**************************/
     /*状态切换*/
     if(GEMGM_Mode != GSTGM_Data.GimbalMode) //云台模式切换
     {
         PID_SetDes(&GstGM_PitchPosPID, Pitch_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_PitchVelPID, Pitch_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosDes);
-        PitchTD.x1 = Pitch_Motor_Paras.PosDes;
+        Pitch_Motor_Paras.PosDes = Pitch_Motor_Paras.PosFB;
+        Pitch_Motor_Paras.VelDes = Pitch_Motor_Paras.VelFB;
+        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosFB);
+        PitchTD.x1 = Pitch_Motor_Paras.PosFB;
         PitchTD.x2 = 0.0f;
 
         PID_SetDes(&GstGM_YawPosPID, Yaw_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_YawVelPID, Yaw_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosDes);
-        YawTD.x1 = Yaw_Motor_Paras.PosDes;
+        Yaw_Motor_Paras.PosDes = Yaw_Motor_Paras.PosFB;
+        Yaw_Motor_Paras.VelDes = Yaw_Motor_Paras.VelFB;
+        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosFB);
+        YawTD.x1 = Yaw_Motor_Paras.PosFB;
         YawTD.x2 = 0.0f;
     }
 
@@ -487,14 +453,18 @@ void GM_RCCtrl_Free(void)
     {
         PID_SetDes(&GstGM_PitchPosPID, Pitch_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_PitchVelPID, Pitch_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosDes);
-        PitchTD.x1 = Pitch_Motor_Paras.PosDes;
+        Pitch_Motor_Paras.PosDes = Pitch_Motor_Paras.PosFB;
+        Pitch_Motor_Paras.VelDes = Pitch_Motor_Paras.VelFB;
+        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosFB);
+        PitchTD.x1 = Pitch_Motor_Paras.PosFB;
         PitchTD.x2 = 0.0f;
 
         PID_SetDes(&GstGM_YawPosPID, Yaw_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_YawVelPID, Yaw_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosDes);
-        YawTD.x1 = Yaw_Motor_Paras.PosDes;
+        Yaw_Motor_Paras.PosDes = Yaw_Motor_Paras.PosFB;
+        Yaw_Motor_Paras.VelDes = Yaw_Motor_Paras.VelFB;
+        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosFB);
+        YawTD.x1 = Yaw_Motor_Paras.PosFB;
         YawTD.x2 = 0.0f;
     }
 
@@ -506,7 +476,7 @@ void GM_RCCtrl_Free(void)
 
     //计算pitch和yaw轴增量
     float PitchIncrement = GST_Receiver.ST_RC.JoyStickR_Y - RCChannelValue_Mid; // Pitch轴增量
-    float YawIncrement   = GST_Receiver.ST_RC.JoyStickL_X - RCChannelValue_Mid; // Yaw轴增量
+    float YawIncrement   = GST_Receiver.ST_RC.JoyStickR_X - RCChannelValue_Mid; // Yaw轴增量
 
     //Pitch目标值赋值
     if(MyAbsf(PitchIncrement)> RCChannel_DeadZone)
@@ -539,14 +509,18 @@ void GM_RCCtrl_Follow(void)
     {
         PID_SetDes(&GstGM_PitchPosPID, Pitch_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_PitchVelPID, Pitch_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosDes);
-        PitchTD.x1 = Pitch_Motor_Paras.PosDes;
+        Pitch_Motor_Paras.PosDes = Pitch_Motor_Paras.PosFB;
+        Pitch_Motor_Paras.VelDes = Pitch_Motor_Paras.VelFB;
+        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosFB);
+        PitchTD.x1 = Pitch_Motor_Paras.PosFB;
         PitchTD.x2 = 0.0f;
 
         PID_SetDes(&GstGM_YawPosPID, Yaw_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_YawVelPID, Yaw_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosDes);
-        YawTD.x1 = Yaw_Motor_Paras.PosDes;
+        Yaw_Motor_Paras.PosDes = Yaw_Motor_Paras.PosFB;
+        Yaw_Motor_Paras.VelDes = Yaw_Motor_Paras.VelFB;
+        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosFB);
+        YawTD.x1 = Yaw_Motor_Paras.PosFB;
         YawTD.x2 = 0.0f;
     }
 
@@ -558,7 +532,7 @@ void GM_RCCtrl_Follow(void)
 
     //计算pitch和yaw轴增量
     float PitchIncrement = GST_Receiver.ST_RC.JoyStickR_Y - RCChannelValue_Mid; // Pitch轴增量
-    float YawIncrement   = GST_Receiver.ST_RC.JoyStickL_X - RCChannelValue_Mid; // Yaw轴增量
+    float YawIncrement   = GST_Receiver.ST_RC.JoyStickR_X - RCChannelValue_Mid; // Yaw轴增量
 
     //Pitch目标值赋值
     if(MyAbsf(PitchIncrement)> RCChannel_DeadZone)
@@ -591,14 +565,18 @@ void GM_Ctrl_KeyMouse(void)
     {
         PID_SetDes(&GstGM_PitchPosPID, Pitch_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_PitchVelPID, Pitch_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosDes);
-        PitchTD.x1 = Pitch_Motor_Paras.PosDes;
+        Pitch_Motor_Paras.PosDes = Pitch_Motor_Paras.PosFB;
+        Pitch_Motor_Paras.VelDes = Pitch_Motor_Paras.VelFB;
+        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosFB);
+        PitchTD.x1 = Pitch_Motor_Paras.PosFB;
         PitchTD.x2 = 0.0f;
 
         PID_SetDes(&GstGM_YawPosPID, Yaw_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_YawVelPID, Yaw_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosDes);
-        YawTD.x1 = Yaw_Motor_Paras.PosDes;
+        Yaw_Motor_Paras.PosDes = Yaw_Motor_Paras.PosFB;
+        Yaw_Motor_Paras.VelDes = Yaw_Motor_Paras.VelFB;
+        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosFB);
+        YawTD.x1 = Yaw_Motor_Paras.PosFB;
         YawTD.x2 = 0.0f;
     }
 
@@ -609,25 +587,29 @@ void GM_Ctrl_KeyMouse(void)
     PID_SetKpKiKd(&GstGM_YawVelPID,   PID_YawVel_Kp_Norm,   PID_YawVel_Ki_Norm,   PID_YawVel_Kd_Norm);
 
     //E键控制Yaw轴旋转180度
-    if(PRESSED_E == true && PRESSED_E_Pre == false)
+    if(IS_Key_ShortClick(&Key_E))
     {
-        // Yaw_Motor_Paras.PosDes += 180.0f;
+        Yaw_Motor_Paras.PosDes += 180.0f;
+        GSTCH_Data.F_DirectionInvert = !GSTCH_Data.F_DirectionInvert; //底盘方向取反
+        GstCH_FollowMode_Paras.YawZeroPoint -= 180.0f;                //跟随模式零位+180度
     }
 
     //TODO：目前使用位控，以后可以试试速控
     //计算pitch和yaw轴增量（键鼠模式使用鼠标移动）
-    float YawIncrement   = (float)GST_Receiver.ST_Mouse.X / 32768.0f;   //鼠标X控制Yaw，范围为-1到1
     float PitchIncrement = (float)GST_Receiver.ST_Mouse.Y / 32768.0f;   //鼠标Y控制Pitch，范围为-1到1
+    float YawIncrement   = (float)GST_Receiver.ST_Mouse.X / 32768.0f;   //鼠标X控制Yaw，  范围为-1到1
 
-    //Yaw目标值赋值
-    if(MyAbsf(YawIncrement) > 0)
-    {
-        Yaw_Motor_Paras.PosDes -= KeyMouse_SST_Yaw * YawIncrement;
-    }
     //Pitch目标值赋值
     if(MyAbsf(PitchIncrement) > 0)
     {
+        PitchIncrement = Limit(PitchIncrement, -0.012f, 0.012f); //对Pitch增量进行限幅，防止输入错误导致云台旋转过快
         Pitch_Motor_Paras.PosDes -= KeyMouse_SST_Pitch * PitchIncrement;
+    }
+    //Yaw目标值赋值
+    if(MyAbsf(YawIncrement) > 0)
+    {
+        YawIncrement = Limit(YawIncrement, -0.005f, 0.005f); //对Yaw增量进行限幅，防止输入错误导致云台旋转过快
+        Yaw_Motor_Paras.PosDes -= KeyMouse_SST_Yaw * YawIncrement;
     }
 
     //限幅
@@ -635,6 +617,8 @@ void GM_Ctrl_KeyMouse(void)
 
     GM_MotorProcess();
 }
+
+
 
 /**
   * @brief  视觉辅瞄模式云台控制函数
@@ -644,6 +628,40 @@ void GM_Ctrl_KeyMouse(void)
 */
 void GM_Ctrl_AutoAim(void)
 {
+    /***********************前置处理**************************/
+    /*状态切换*/
+    if(GEMGM_Mode != GSTGM_Data.GimbalMode) //云台模式切换
+    {
+        PID_SetDes(&GstGM_PitchPosPID, Pitch_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
+        PID_SetDes(&GstGM_PitchVelPID, Pitch_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
+        Pitch_Motor_Paras.PosDes = Pitch_Motor_Paras.PosFB;
+        Pitch_Motor_Paras.VelDes = Pitch_Motor_Paras.VelFB;
+        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosFB);
+        PitchTD.x1 = Pitch_Motor_Paras.PosFB;
+        PitchTD.x2 = 0.0f;
+
+        PID_SetDes(&GstGM_YawPosPID, Yaw_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
+        PID_SetDes(&GstGM_YawVelPID, Yaw_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
+        Yaw_Motor_Paras.PosDes = Yaw_Motor_Paras.PosFB;
+        Yaw_Motor_Paras.VelDes = Yaw_Motor_Paras.VelFB;
+        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosFB);
+        YawTD.x1 = Yaw_Motor_Paras.PosFB;
+        YawTD.x2 = 0.0f;
+    }
+
+    //设置PID参数为正常模式
+    PID_SetKpKiKd(&GstGM_PitchPosPID, PID_PitchPos_Kp_Norm, PID_PitchPos_Ki_Norm, PID_PitchPos_Kd_Norm);
+    PID_SetKpKiKd(&GstGM_PitchVelPID, PID_PitchVel_Kp_Norm, PID_PitchVel_Ki_Norm, PID_PitchVel_Kd_Norm);
+    PID_SetKpKiKd(&GstGM_YawPosPID,   PID_YawPos_Kp_Norm,   PID_YawPos_Ki_Norm,   PID_YawPos_Kd_Norm);
+    PID_SetKpKiKd(&GstGM_YawVelPID,   PID_YawVel_Kp_Norm,   PID_YawVel_Ki_Norm,   PID_YawVel_Kd_Norm);
+
+    //云台目标值赋值
+    Pitch_Motor_Paras.PosDes = GST_Vision.AimAssistDataReceiveFrame.Pitch;
+    Yaw_Motor_Paras.PosDes   = GST_Vision.AimAssistDataReceiveFrame.Yaw;
+
+    //限幅
+    Pitch_Motor_Paras.PosDes = Limit(Pitch_Motor_Paras.PosDes, PitchMin, PitchMax);
+
     GM_MotorProcess();
 }
 
@@ -697,7 +715,7 @@ void GM_Ctrl_BuffInterfereBig(void)
   * @param  无
   * @retval 无
 */
-void GM_RCCtrl_Debug(void)
+void GM_Ctrl_Debug(void)
 {
     /***********************前置处理**************************/
     /*状态切换*/
@@ -705,14 +723,18 @@ void GM_RCCtrl_Debug(void)
     {
         PID_SetDes(&GstGM_PitchPosPID, Pitch_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_PitchVelPID, Pitch_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosDes);
-        PitchTD.x1 = Pitch_Motor_Paras.PosDes;
+        Pitch_Motor_Paras.PosDes = Pitch_Motor_Paras.PosFB;
+        Pitch_Motor_Paras.VelDes = Pitch_Motor_Paras.VelFB;
+        TD_SetInput(&PitchTD, Pitch_Motor_Paras.PosFB);
+        PitchTD.x1 = Pitch_Motor_Paras.PosFB;
         PitchTD.x2 = 0.0f;
 
         PID_SetDes(&GstGM_YawPosPID, Yaw_Motor_Paras.PosFB);  //目标值设为当前位置，防止切换时偏差导致阶跃输入进而发散
         PID_SetDes(&GstGM_YawVelPID, Yaw_Motor_Paras.VelFB);  //目标值设为当前速度，防止切换时偏差导致阶跃输入进而发散
-        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosDes);
-        YawTD.x1 = Yaw_Motor_Paras.PosDes;
+        Yaw_Motor_Paras.PosDes = Yaw_Motor_Paras.PosFB;
+        Yaw_Motor_Paras.VelDes = Yaw_Motor_Paras.VelFB;
+        TD_SetInput(&YawTD, Yaw_Motor_Paras.PosFB);
+        YawTD.x1 = Yaw_Motor_Paras.PosFB;
         YawTD.x2 = 0.0f;
     }
 
@@ -777,7 +799,7 @@ void GimbalModeControl(GMMode_EnumTypeDef ModeNow)
     switch(ModeNow)
     {
         case GMMode_Disabled:
-            GM_RCCtrl_Disabled();          break;
+            GM_Ctrl_Disabled();          break;
 
         case GMMode_RC_Free:
             GM_RCCtrl_Free();              break;
@@ -804,10 +826,10 @@ void GimbalModeControl(GMMode_EnumTypeDef ModeNow)
             GM_Ctrl_BuffInterfereBig();    break;
 
         case GMMode_Debug:
-            GM_RCCtrl_Debug();             break;
+            GM_Ctrl_Debug();             break;
 
       default:
-          GM_RCCtrl_Disabled();            break;
+          GM_Ctrl_Disabled();            break;
     }
 }
 //#endregion

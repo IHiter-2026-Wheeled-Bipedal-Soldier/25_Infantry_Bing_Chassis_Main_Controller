@@ -9,10 +9,10 @@
 #include "Algorithm.h"
 #include "Algorithm_Simple.h"
 #include "GlobalDeclare_General.h"
+#include "GlobalDeclare_Chassis.h"
 #include "GlobalDeclare_Gimbal.h"
 #include "General_AuxiliaryFunc.h"
 #include "Gimbal_APIFunction.h"
-#include "GlobalDeclare_Chassis.h"
 #include "TIM_Config.h"
 #include <arm_math.h>
 
@@ -77,29 +77,15 @@ void GM_MotorProcess(void)
     PID_SetFB(&GstGM_PitchVelPID, Pitch_Motor_Paras.VelFB);
     PID_SetDes(&GstGM_PitchPosPID, TD_GetOutput(&PitchTD));
   	PID_Cal(&GstGM_PitchPosPID);
-    PID_SetDes(&GstGM_PitchVelPID, -(GstGM_PitchPosPID.U + pitch_td_coe*PitchTD.x2)); //TD速度前馈 负号由云控方向决定，换车需修改
+    PID_SetDes(&GstGM_PitchVelPID, (GstGM_PitchPosPID.U + pitch_td_coe*PitchTD.x2)); //TD速度前馈 正负号由云控方向决定，换车需修改
   	PID_Cal(&GstGM_PitchVelPID);
 
     PID_SetFB(&GstGM_YawPosPID, Yaw_Motor_Paras.PosFB);
     PID_SetFB(&GstGM_YawVelPID, Yaw_Motor_Paras.VelFB);
     PID_SetDes(&GstGM_YawPosPID, TD_GetOutput(&YawTD));
   	PID_Cal(&GstGM_YawPosPID);
-    PID_SetDes(&GstGM_YawVelPID, -(GstGM_YawPosPID.U + yaw_td_coe*YawTD.x2)); //TD速度前馈 负号由云控方向决定，换车需修改
+    PID_SetDes(&GstGM_YawVelPID, (GstGM_YawPosPID.U + yaw_td_coe*YawTD.x2)); //TD速度前馈 正负号由云控方向决定，换车需修改
   	PID_Cal(&GstGM_YawVelPID);
-}
-
-//角度解算成-180~+180
-float Angle_Inf_To_180(float angle)
-{
-    if(MyAbsf(angle)>1800000) return 0;
-    else
-    {
-        int temp = ((int)angle)/360;
-        angle -= 360.0f*temp;
-        if(angle>+180) angle-=360;
-        else if(angle<-180) angle+=360;
-        return angle;
-    }
 }
 
 //#region /*******************************视觉模式更新与处理相关函数********************************************/
@@ -153,34 +139,34 @@ void Vision_StateMode_Update(void)
 void Vision_Switch_Process(void)
 {
     //判断辅瞄模式是否处于正在切换状态
-	static uint8_t cnt = 0;
-	if(Vision_Mode_Now != Vision_Mode_Pre)
-	{
-		Vision_Mode_Changing = TRUE; //视觉模式正在切换，切换标志位置1
-	}
+    static uint8_t cnt = 0;
+    if(Vision_Mode_Now != Vision_Mode_Pre)
+    {
+        Vision_Mode_Changing = TRUE; //视觉模式正在切换，切换标志位置1
+    }
 
-	if(Vision_Mode_Changing == TRUE)
-	{
-		cnt++;
-		if(cnt >= 50) //视觉切换标志位持续50ms
-		{
-			Vision_Mode_Changing = FALSE;
-			cnt = 0;
-		}
-	}
+    if(Vision_Mode_Changing == TRUE)
+    {
+        cnt++;
+        if(cnt >= 50) //视觉切换标志位持续50ms
+        {
+            Vision_Mode_Changing = FALSE;
+            cnt = 0;
+        }
+    }
 
     if(Vision_Mode_Changing == TRUE) //如果处于视觉切换状态，云台目标值等于反馈值
-	{
-		Pitch_Motor_Paras.PosDes = Pitch_Motor_Paras.PosFB;
-		Yaw_Motor_Paras.PosDes   = Yaw_Motor_Paras.PosFB;
-	}
+    {
+        Pitch_Motor_Paras.PosDes = Pitch_Motor_Paras.PosFB;
+        Yaw_Motor_Paras.PosDes   = Yaw_Motor_Paras.PosFB;
+    }
     else //如果不处于切换状态，则将视觉目标值赋值给云台目标值
-	{
-		if(Vision_State_Enable_Now == Vision_Enable && Vision_Mode_Changing == FALSE && GST_SystemMonitor.USART6Rx_fps >= 10)
-		{
-			Pitch_Motor_Paras.PosDes = GST_Vision.AimAssistDataReceiveFrame.Pitch;
-			Yaw_Motor_Paras.PosDes   = GST_Vision.AimAssistDataReceiveFrame.Yaw;
-		}
-	}
+    {
+        if(Vision_State_Enable_Now == Vision_Enable) //&& GST_SystemMonitor.USART6Rx_fps >= 10 //&& GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == TRUE
+        {
+            Pitch_Motor_Paras.PosDes = GST_Vision.AimAssistDataReceiveFrame.Pitch;
+            Yaw_Motor_Paras.PosDes   = GST_Vision.AimAssistDataReceiveFrame.Yaw;
+        }
+    }
 }
 //#endregion

@@ -36,49 +36,39 @@ Debug_TargetAutoAlter_StructTypeDef GstYaw_DebugDes_AutoAlter = {0};   //Yaw轴�
 bool GF_USART1_RxDone = false;           //串口1接收完成标志位
 ReceiverData_StructTypeDef GST_Receiver;    //遥控器接收机接收数据结构体
 
+/********超级电容相关********/
+#define SuperCap_Norm_CANTxID   0x500       //超电的正常通讯CAN TxID
+#define SuperCap_Norm_CANRxID   0x400       //超电的正常通讯CAN RxID
+#define SuperCap_Enable_CANTxID 0x501       //超电的使能CAN TxID，发送这个ID号的CAN报文可以使能超级电容输出
+#define SuperCap_Disable_CANTxID 0x502      //超电的禁用CAN TxID，发送这个ID号的CAN报文可以关闭超级电容输出
+
+CapacitorMessage_StructTypeDef GSTCH_Capacitor = {SuperCap_Norm_CANTxID, SuperCap_Norm_CANRxID, SuperCap_Enable_CANTxID, SuperCap_Disable_CANTxID};
+
+/*用于判断拨轮上拨是底盘模式切换还是摩擦轮状态切换*/
+CHSH_RollerMode_StructTypeDef Gst_CHSH_RollerMode_Paras = {0};
+
 /*机器人整体控制结构体*/
 RobotControl_StructTypeDef GST_RMCtrl; //机器人整体控制结构体，这个结构体只输入，不输出。如果要获取对应变量的输出，请前往对应的数据结构体，比如GSTCH_Data等。
 
 /********键鼠相关********/
 //基本按键
-bool PRESSED_W      = FALSE;
-bool PRESSED_S      = FALSE;
-bool PRESSED_A      = FALSE;
-bool PRESSED_D      = FALSE;
-bool PRESSED_SHIFT  = FALSE;
-bool PRESSED_CTRL   = FALSE;
-bool PRESSED_Q      = FALSE;
-bool PRESSED_E      = FALSE;
+Key_Pressed_Paras_StructTypeDef Key_W     = {0};
+Key_Pressed_Paras_StructTypeDef Key_S     = {0};
+Key_Pressed_Paras_StructTypeDef Key_A     = {0};
+Key_Pressed_Paras_StructTypeDef Key_D     = {0};
+Key_Pressed_Paras_StructTypeDef Key_Q     = {0};
+Key_Pressed_Paras_StructTypeDef Key_E     = {0};
+Key_Pressed_Paras_StructTypeDef Key_SHIFT = {0};
+Key_Pressed_Paras_StructTypeDef Key_CTRL  = {0};
 //图传接收器增加的按键
-bool PRESSED_R      = FALSE;
-bool PRESSED_F      = FALSE;
-bool PRESSED_G      = FALSE;
-bool PRESSED_Z      = FALSE;
-bool PRESSED_X      = FALSE;
-bool PRESSED_C      = FALSE;
-bool PRESSED_V      = FALSE;
-bool PRESSED_B      = FALSE;
-
-//基本按键
-bool PRESSED_W_Pre      = FALSE;
-bool PRESSED_S_Pre      = FALSE;
-bool PRESSED_A_Pre      = FALSE;
-bool PRESSED_D_Pre      = FALSE;
-bool PRESSED_SHIFT_Pre  = FALSE;
-bool PRESSED_CTRL_Pre   = FALSE;
-bool PRESSED_Q_Pre      = FALSE;
-bool PRESSED_E_Pre      = FALSE;
-//图传接收器增加的按键
-bool PRESSED_R_Pre      = FALSE;
-bool PRESSED_F_Pre      = FALSE;
-bool PRESSED_G_Pre      = FALSE;
-bool PRESSED_Z_Pre      = FALSE;
-bool PRESSED_X_Pre      = FALSE;
-bool PRESSED_C_Pre      = FALSE;
-bool PRESSED_V_Pre      = FALSE;
-bool PRESSED_B_Pre      = FALSE;
-
-
+Key_Pressed_Paras_StructTypeDef Key_R     = {0};
+Key_Pressed_Paras_StructTypeDef Key_F     = {0};
+Key_Pressed_Paras_StructTypeDef Key_G     = {0};
+Key_Pressed_Paras_StructTypeDef Key_Z     = {0};
+Key_Pressed_Paras_StructTypeDef Key_X     = {0};
+Key_Pressed_Paras_StructTypeDef Key_C     = {0};
+Key_Pressed_Paras_StructTypeDef Key_V     = {0};
+Key_Pressed_Paras_StructTypeDef Key_B     = {0};
 
 //裁判系统接收数据结构体
 ext_game_status_t			         G_ST_Game_Status;//1.比赛状态数据

@@ -35,10 +35,10 @@ extern float FWSpeed_Datum_Buff;	   //打符摩擦轮目标转速（打符时默
 
 //#region /****PID相关参数***************************************/
 /*拨弹电机*/
-#define PID_SupplyPos_Kp          30.0f           //SupplyMotor位置环PID：比例系数Kp
+#define PID_SupplyPos_Kp          72.0f           //SupplyMotor位置环PID：比例系数Kp
 #define PID_SupplyPos_Ki          0.0f           //SupplyMotor位置环PID：积分系数Ki
-#define PID_SupplyPos_Kd          0.0f           //SupplyMotor位置环PID：微分系数Kd
-#define PID_SupplyVel_Kp          20.0f           //SupplyMotor速度环PID：比例系数Kp
+#define PID_SupplyPos_Kd          250.0f           //SupplyMotor位置环PID：微分系数Kd
+#define PID_SupplyVel_Kp          100.0f           //SupplyMotor速度环PID：比例系数Kp
 #define PID_SupplyVel_Ki          0.0f           //SupplyMotor速度环PID：积分系数Ki
 #define PID_SupplyVel_Kd          100.0f           //SupplyMotor速度环PID：微分系数Kd
 #define PID_SupplyPos_UMax        10000.0f       //SupplyMotor位置环PID：总输出最大值
@@ -83,6 +83,7 @@ typedef struct
     float SupplyPellet_VelDes;  //拨弹电机速度目标值，单位度/s（注意是减速箱输出端角速度）
     float SupplyPellet_PosFB;   //拨弹电机角度反馈值，单位度（注意是减速箱输出端角度）
     float SupplyPellet_VelFB;   //拨弹电机速度反馈值，单位度/s（注意是减速箱输出端角速度）
+    float SupplyPellet_TorqueFB;//拨弹电机力矩反馈值，单位Nm（注意不是减速箱输出端力矩）
     float SupplyPellet_Current; //拨弹电机CAN发送电流，注意不是实际电流
 
     /*遥控器操作相关*/
@@ -118,7 +119,7 @@ typedef struct
     bool FrictionWheel_ReadyOrNot_Flag;      //摩擦轮准备完毕标志位
     bool SupplyPellet_ReadyOrNot_Flag;       //拨弹电机准备完毕标志位
 
-    /*卡弹（堵转）相关*/
+    /*卡弹（拨弹电机堵转）相关*/
     bool IS_Bullet_Blocked_Flag;		     //卡弹判断标志位
     bool Bullet_Blocked_Protection_Flag;     //卡弹保护标志位
     int Bullet_Blocked_Cnt;			         //卡弹判断计数器

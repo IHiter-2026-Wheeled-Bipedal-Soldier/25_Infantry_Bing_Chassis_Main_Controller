@@ -28,26 +28,40 @@ typedef enum {
     // 5、在Chassis_Stratgy.c的ChassisControl函数中增加对应模式的控制策略实现
     // 6、如果需要，在Chassis_ModeChooseParameter_StructTypeDef结构体中增加对应的参数变量
 
-    CHMode_RC_ManualSafe = 0,  //遥控器底盘模式：手动安全（遥控器拨杆左下右上）
-    CHMode_RC_AutoSafe,        //遥控器底盘模式：自动安全
+    CHMode_ManualSafe = 0,     //通用底盘模式：手动安全（遥控器拨杆左下右上）
+    CHMode_AutoSafe,           //通用底盘模式：自动安全
+    CHMode_OffGround,          //通用底盘模式：离地
+
     CHMode_RC_Standby,         //遥控器底盘模式：待机
     CHMode_RC_StandUp,         //遥控器底盘模式：起立
     CHMode_RC_Free,            //遥控器底盘模式：自由（非跟随模式）
     CHMode_RC_Follow,          //遥控器底盘模式：跟随（随云台转动）
     CHMode_RC_SitDown,         //遥控器底盘模式：坐下
-    CHMode_RC_OffGround,       //遥控器底盘模式：离地
     CHMode_RC_Jump,            //遥控器底盘模式：跳跃
+
+    CHMode_KeyMouse_Standby,   //键鼠底盘模式：待机
+    CHMode_KeyMouse_StandUp,   //键鼠底盘模式：起立
+    CHMode_KeyMouse_Follow,    //键鼠底盘模式：跟随
+    CHMode_KeyMouse_SitDown,   //键鼠底盘模式：坐下
+    CHMode_KeyMouse_Jump,      //键鼠底盘模式：跳跃
     // 待补充
 } ChassisMode_EnumTypeDef;
 
 
 
-/*底盘运动方向相关枚举*/
+/*底盘前后运动方向相关枚举*/
 typedef enum {
-    MoveDirection_Brake,   // 停止
-    MoveDirection_Forward, // 前进
-    MoveDirection_Backward // 后退
-} Chassis_MoveDirection_EnumTypeDef;
+    MoveXDirection_Brake,   // 停止
+    MoveXDirection_Forward, // 前进
+    MoveXDirection_Backward,// 后退
+} Chassis_MoveXDirection_EnumTypeDef;
+
+/*底盘左右运动方向相关枚举*/
+typedef enum {
+    MoveYDirection_Brake,   // 停止
+    MoveYDirection_Left,    // 左移（侧向）
+    MoveYDirection_Right,   // 右移（侧向）
+} Chassis_MoveYDirection_EnumTypeDef;
 
 /*跳跃阶段枚举定义*/
 typedef enum {
@@ -64,15 +78,24 @@ typedef enum {
 // /****结构体声明************************************************************************/
 /*模式开始时间结构体：实际在CHData_StructTypeDef中使用*/
 typedef struct {
-    uint32_t RC_ManualSafe;   // RC遥控器控制下，手动安全模式开始时间，单位毫秒
-    uint32_t RC_AutoSafe;     // RC遥控器控制下，自动安全模式开始时间，单位毫秒
-    uint32_t RC_Standby;      // RC遥控器控制下，待机模式开始时间，单位毫秒
-    uint32_t RC_StandUp;      // RC遥控器控制下，起立模式开始时间，单位毫秒
-    uint32_t RC_Free;         // RC遥控器控制下，自由模式开始时间，单位毫秒
-    uint32_t RC_Follow;       // RC遥控器控制下，跟随模式开始时间，单位毫秒
-    uint32_t RC_OffGround;    // RC遥控器控制下，离地模式开始时间，单位毫秒
-    uint32_t RC_SitDown;      // RC遥控器控制下，坐下模式开始时间，单位毫秒
-    uint32_t RC_Jump;         // RC遥控器控制下，跳跃模式开始时间，单位毫秒
+    uint32_t ManualSafe;       // 通用控制下，手动安全模式开始时间，单位毫秒
+    uint32_t AutoSafe;         // 通用控制下，自动安全模式开始时间，单位毫秒
+    uint32_t OffGround;     // RC遥控器控制下，离地模式开始时间，单位毫秒
+
+    uint32_t RC_Standby;       // RC遥控器控制下，待机模式开始时间，单位毫秒
+    uint32_t RC_StandUp;       // RC遥控器控制下，起立模式开始时间，单位毫秒
+    uint32_t RC_Free;          // RC遥控器控制下，自由模式开始时间，单位毫秒
+    uint32_t RC_Follow;        // RC遥控器控制下，跟随模式开始时间，单位毫秒
+    uint32_t RC_SitDown;       // RC遥控器控制下，坐下模式开始时间，单位毫秒
+    uint32_t RC_Jump;          // RC遥控器控制下，跳跃模式开始时间，单位毫秒
+
+    uint32_t KeyMouse_Standby; // 键鼠控制下，待机模式开始时间，单位毫秒
+    uint32_t KeyMouse_StandUp; // 键鼠控制下，起立模式开始时间，单位毫秒
+    uint32_t KeyMouse_Free;    // 键鼠控制下，自由模式开始时间，单位毫秒
+    uint32_t KeyMouse_Follow;  // 键鼠控制下，跟随模式开始时间，单位毫秒
+    uint32_t KeyMouse_SitDown; // 键鼠控制下，坐下模式开始时间，单位毫秒
+    uint32_t KeyMouse_Jump;    // 键鼠控制下，跳跃模式开始时间，单位毫秒
+
 } _CH_ModeStartTime_StructTypeDef;
 
 /*IMU2底盘云控数据处理结构体类型定义，包括发送和接收(注意4字节对齐)(32位单片机默认)*/
@@ -208,6 +231,16 @@ typedef struct {
     // 电调手册上写了，这个值的范围是-16384到16384，代表-20A到20A的电流输出。
 } HMData_StructTypeDef;
 
+/*底盘云台Follow模式主要参数结构体*/
+typedef struct {
+    /*需要初始化赋值的成员*/
+    float YawZeroPoint;         // 偏航跟随零点（云台正对前方时的偏航角值），单位：度
+
+    /*不需要初始化赋值的成员*/
+    float RelativeYawAngle;     // 相对偏航角（BenjaminPosition，范围-180~180），单位度
+    // float RelativeYawAngle180;  // 相对偏航角（范围-180~180），单位度
+} FollowMode_StructTypeDef;
+
 /*底盘数据结构体*/
 typedef struct {
     /*腿长相关*/
@@ -260,7 +293,8 @@ typedef struct {
     _CH_ModeStartTime_StructTypeDef ST_ModeStartTime;  // 底盘各模式开始时间结构体
 
     bool F_DirectionInvert;  // XXX 赛场上快速转向 底盘前进方向反转标志位，true表示前进方向反转，false表示前进方向不反转
-    Chassis_MoveDirection_EnumTypeDef EM_MoveDirection;  // 底盘运动方向枚举变量，表示当前底盘是刹车、前进还是后退
+    Chassis_MoveXDirection_EnumTypeDef EM_MoveXDirection;  // 底盘前后运动方向枚举变量，表示当前底盘是刹车、前进还是后退
+    Chassis_MoveYDirection_EnumTypeDef EM_MoveYDirection;  // 底盘左右运动方向枚举变量，表示当前底盘是刹车、左移还是右移
 
     /*离地检测相关*/
     float Leg1F_N;  // 左腿腿部支持力反馈值，单位N
@@ -274,6 +308,9 @@ typedef struct {
 
     /*卡尔曼滤波相关*/
     float VelBody_HM_Obs;  // 轮毂电机观测的车身速度，单位：m/s
+
+    /*键鼠控制相关*/
+    float YawAngleDeltaDes_Offset; // 键鼠控制下，根据左右前后控制输入引入的偏航角目标增量的补偿值，单位：度
 
     /*手动腿长调整相关标志位*/
     bool F_RJoyUpLatched;   // 右摇杆上抬锁存标志
@@ -303,6 +340,7 @@ extern const float GCH_TaskTime;
 /*ChassisStrategy里的各个模式相关时间*/
 extern uint16_t CHMode_AllMode_PreProcessTime;
 extern uint16_t CHMode_RC_StandUp_TotalTime;
+extern uint16_t CHMode_KeyMouse_StandUp_TotalTime;
 
 // #pragma endregion
 
@@ -399,6 +437,8 @@ extern float ChMove_BrakeVelLimitTH;
 extern float ChMove_YawAngleVelMaxTH;
 extern float ChMove_TurnYawVel_Normal;
 extern float ChMove_YawAngleVelAddStep;
+
+extern FollowMode_StructTypeDef GstCH_FollowMode_Paras;
 // #pragma endregion
 
 // #pragma region /****底盘小陀螺相关*****************************/
@@ -409,6 +449,24 @@ extern float RCTopMode_TopAngleVelDesMax;
 extern float RCTopMode_TopAngleVelAddStep;
 extern float RCTopMode_TopAngleVelBrakeStep;
 extern float RCTopMode_ExitAngleVelTH;
+
+extern float KeyMouseTopMode_ExitAngleVelTH;
+extern float KeyMouseTopMode_TopStill_AngleVelDesMax;
+extern float KeyMouseTopMode_TopStill_AngleVelAddStep;      
+extern float KeyMouseTopMode_TopStill_AngleVelBrakeStep;    
+extern float KeyMouseTopMode_TopMoving_AngleVelDesMax;
+extern float KeyMouseTopMode_TopMoving_AngleVelAddStep;     
+extern float KeyMouseTopMode_TopMoving_AngleVelBrakeStep;   
+
+extern float ChMove_Top_VelDesMax;
+extern float ChMove_Top_Acc_Moving;
+extern float ChMove_Top_Acc_Brake;
+extern float ChMove_Top_VelDesMin;
+extern float ChMove_Top_VelMovingChangeRateMin;
+extern float ChMove_Top_VelMovingChangeRateMax;
+extern float ChMove_Top_VelBrakingChangeRateMax;
+extern float ChMove_Top_BrakeVelLimitTH;        
+
 // #pragma endregion
 
 // #pragma region /****SlowSitDown相关*****************************/
