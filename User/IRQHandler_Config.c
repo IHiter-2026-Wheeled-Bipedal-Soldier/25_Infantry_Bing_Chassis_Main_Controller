@@ -107,11 +107,11 @@ void CAN1_RX0_IRQHandler(void)
                 break;
 
 			case 0x401:
-                CAP_current[0] = (s16)( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
-                CAP_current[1] = (s16)( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
-                CAP_current[2] = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
-                CAP_current[3] = (s16)( ( CAN_RxMsg.Data[6] << 8 ) | (CAN_RxMsg.Data[7] ) ) / 100.0f;
-                GST_SystemMonitor.CapacitorRx_cnt++;
+//                CAP_current[0] = (s16)( ( CAN_RxMsg.Data[0] << 8 ) | (CAN_RxMsg.Data[1] ) ) / 100.0f;
+//                CAP_current[1] = (s16)( ( CAN_RxMsg.Data[2] << 8 ) | (CAN_RxMsg.Data[3] ) ) / 100.0f;
+//                CAP_current[2] = (s16)( ( CAN_RxMsg.Data[4] << 8 ) | (CAN_RxMsg.Data[5] ) ) / 100.0f;
+//                CAP_current[3] = (s16)( ( CAN_RxMsg.Data[6] << 8 ) | (CAN_RxMsg.Data[7] ) ) / 100.0f;
+//                GST_SystemMonitor.CapacitorRx_cnt++;
                 break;
 			default:
 				break;

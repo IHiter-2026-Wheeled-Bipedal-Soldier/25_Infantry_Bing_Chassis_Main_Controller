@@ -242,23 +242,23 @@ typedef struct {
 } FollowMode_StructTypeDef;
 
 
-/*超电数据结构体*/
-typedef struct
-{
-    /*需要初始化赋值的成员*/
-    uint16_t CANTxID;   //超电CAN发送ID
-    uint16_t CANRxID;   //超电CAN接收ID
+///*超电数据结构体*/
+//typedef struct
+//{
+//    /*需要初始化赋值的成员*/
+//    uint16_t CANTxID;   //超电CAN发送ID
+//    uint16_t CANRxID;   //超电CAN接收ID
 
-    /*不需要初始化赋值的成员*/
-    /*接收消息，CANRxID为0x400*/ // TODO CANID存疑
-    float CAP_Vol;      //电容电压
-    float Pow_Out;      //电池输出
-    float Volt_Out;     //电容输出
-    float Pow_In;       //电池输出
+//    /*不需要初始化赋值的成员*/
+//    /*接收消息，CANRxID为0x400*/ // TODO CANID存疑
+//    float CAP_Vol;      //电容电压
+//    float Pow_Out;      //电池输出
+//    float Volt_Out;     //电容输出
+//    float Pow_In;       //电池输出
 
-    /*发送消息，CANTxID为0x500*/ // TODO CANID存疑
-    float TxPower;  //超电充电功率
-} CapacitorMessage_StructTypeDef;
+//    /*发送消息，CANTxID为0x500*/ // TODO CANID存疑
+//    float TxPower;  //超电充电功率
+//} CapacitorMessage_StructTypeDef;
 
 /*底盘数据结构体*/
 typedef struct {
