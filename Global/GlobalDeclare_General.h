@@ -84,7 +84,6 @@ typedef struct
     /************************计数器************************/
     uint16_t CAN1Rx_cnt;            //CAN1Rx计数器
     uint16_t CAN2Rx_cnt;            //CAN2Rx计数器
-    uint16_t CapacitorRx_cnt;       //电容CAN数据接收计数器
     uint16_t HubMotor1Rx_cnt;       //左轮毂电机接收计数器
     uint16_t HubMotor2Rx_cnt;       //右轮毂电机接收计数器
     uint16_t FrictionMotor1Rx_cnt;  //左摩擦轮电机Rx计数器
@@ -111,7 +110,6 @@ typedef struct
     /************************帧率************************/
     uint16_t CAN1Rx_fps;            //CAN1Rx帧率
     uint16_t CAN2Rx_fps;            //CAN2Rx帧率
-    uint16_t CapacitorRx_fps;       //电容CAN数据接收帧率
     uint16_t HubMotor1Rx_fps;       //左轮毂电机帧率
     uint16_t HubMotor2Rx_fps;       //右轮毂电机帧率
     uint16_t FrictionMotor1Rx_fps;  //左摩擦轮电机帧率
@@ -127,6 +125,7 @@ typedef struct
 	uint16_t UART4Rx_fps;       //UART4Rx帧率
 	uint16_t UART5Rx_fps;       //UART5Rx帧率
 	uint16_t USART6Rx_fps;      //USART6Rx帧率
+    uint16_t USART6Tx_fps;      //USART6Tx帧率
 
     uint16_t SendDataTask_fps;  //SendDataTask帧率
     uint16_t ChassisTask_fps;   //ChassisTask帧率
