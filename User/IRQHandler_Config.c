@@ -95,7 +95,6 @@ void CAN1_RX0_IRQHandler(void)
 			
             /* ---- 超级电容反馈 ---- */
             case 0x400:
-                Capacitor_Cnt = OS_TIME();
                 // 电容电压: Data[0-1], uint16, /100 -> V
                 GSTCH_Capacitor.CAP_Vol  = ((CAN_RxMsg.Data[0] << 8) | CAN_RxMsg.Data[1]) / 100.0f;
                 // 电池输出功率: Data[2-3], 需要根据实际协议确认

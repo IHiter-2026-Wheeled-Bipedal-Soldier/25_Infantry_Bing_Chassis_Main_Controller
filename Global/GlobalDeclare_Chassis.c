@@ -14,9 +14,6 @@
 #include "Algorithm.h"
 #include <arm_math.h>
 
-
-
-
 /****************************************宏定义、常量定义（不需要修改）****************************************/
 /*FreeRTOS任务相关*/
 const TickType_t GCH_TaskPeriod = 1;  // ChassisTask的任务周期，单位为FreeRTOS的系统节拍。默认是ms（取决于configTICK_RATE_HZ）
@@ -45,10 +42,10 @@ const float JointMotorMAXTorque = Motor_MG8016Ei6MaxTorque;  // 关节电机最�
     {ThighLen, CalfLen, CalfLen, ThighLen, l5, phi1ZP, phi2ZP, SampleTime}
 /*各杆长度*/
 // 换车时需要修改
-#define LeftThighLen 150.0f   // 左腿大腿长度，单位mm，五连杆解算里面的l1
-#define LeftCalfLen 270.0f    // 左腿小腿长度，单位mm，五连杆解算里面的l2
+#define LeftThighLen  150.0f   // 左腿大腿长度，单位mm，五连杆解算里面的l1
+#define LeftCalfLen   270.0f    // 左腿小腿长度，单位mm，五连杆解算里面的l2
 #define RightThighLen 150.0f  // 右腿大腿长度，单位mm，五连杆解算里面的l4
-#define RightCalfLen 270.0f   // 右腿小腿长度，单位mm，五连杆解算里面的l3
+#define RightCalfLen  270.0f   // 右腿小腿长度，单位mm，五连杆解算里面的l3
 #define SameSideJMDistance 150.0f  // 同侧腿的关节电机间距，单位mm，五连杆解算里面的l5
 /*关节电机编码器零点（相对于五连杆解算的坐标系）*/
 // 换车时需要修改
