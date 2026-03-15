@@ -103,7 +103,7 @@ void CAN1_RX0_IRQHandler(void)
                 GSTCH_Capacitor.Volt_Out = ((CAN_RxMsg.Data[2] << 8) | CAN_RxMsg.Data[3]) / 100.0f;
                 // 电池输入功率: Data[4-5], int16, /100 -> W (可正可负)
                 GSTCH_Capacitor.Pow_In = (int16_t)((CAN_RxMsg.Data[4] << 8) | CAN_RxMsg.Data[5]) / 100.0f;
-                GST_SystemMonitor.CapacitorRx_cnt++;
+                GST_SystemMonitor.CapatitorRx_cnt++;
                 break;
 
 			case 0x401:

@@ -1,26 +1,15 @@
 # Keil 编译产物
-STM32/Output/*.o
-STM32/Output/*.crf
-STM32/Output/*.d
-STM32/Output/*.axf
-STM32/Output/*.hex
-STM32/Output/*.htm
-STM32/Output/*.map
-STM32/Output/*.lnp
-STM32/Output/*.dep
-STM32/Output/*.build_log.htm
-STM32/Listings/*.lst
+STM32/Output/
+STM32/Driver/
+STM32/Listings/
+build/
+
 
 # Keil 项目临时文件
-Project/*.uvguix.*
-Project/JLinkLog.txt
-Project/JLinkSettings.ini
-Project/.vscode/*.log
-Project/.vscode/*.lock
+Project/
+ProjectMemory/
 
 # 应用输出
-Application/*/output/
-STM32/BSP/output/
 
 # 通用编译产物
 *.o
@@ -30,7 +19,4 @@ STM32/BSP/output/
 
 # IDE 配置
 .vscode/
-.vscode/c_cpp_properties.json
-.vscode/launch.json
-.vscode/settings.json
-*.code-workspace
+.github/

@@ -437,10 +437,6 @@ HMData_StructTypeDef GSTCH_HM2 = {HM_ReductionRatio};  // 右轮毂电机控制�
 /*底盘Follow模式主要参数结构体*/
 FollowMode_StructTypeDef GstCH_FollowMode_Paras = {Yaw_Follow_ZeroPoint}; // 底盘Follow模式主要参数结构体，INIT顺序为：Yaw_Follow_ZeroPoint：偏航跟随零点，单位度
 
-/*超电数据结构体*/
-CapacitorMessage_StructTypeDef GSTCH_Capacitor;  //超电数据结构体
-
-
 /*底盘数据结构体*/
 CHData_StructTypeDef GSTCH_Data;  // 底盘正式数据结构体，存放和底盘相关的几乎所有数据
 
