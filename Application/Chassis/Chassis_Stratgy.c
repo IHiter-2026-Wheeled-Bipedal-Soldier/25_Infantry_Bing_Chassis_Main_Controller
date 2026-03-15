@@ -1527,7 +1527,8 @@ void ChModeControl_RCJumpMode_Ctrl(void)
  * @param  ModeNow：ChassisMode_EnumTypeDef类型的枚举值，当前底盘的工作状态
  * @retval 无
  */
-void ChassisModeControl_Ctrl(ChassisMode_EnumTypeDef ModeNow) {
+void ChassisModeControl_Ctrl(ChassisMode_EnumTypeDef ModeNow)
+{
     switch (ModeNow)
     {
         /*通用手动安全模式*/

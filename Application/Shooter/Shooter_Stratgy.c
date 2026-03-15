@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
   * @file    Shooter_Stratgy.c
-  * @author  26赛季，平衡步兵电控，马帅
-  * @date    2026.1.10
+  * @author  26赛季，平衡步兵电控，苏文远
+  * @date    2026.3.10
   * @brief   发射模式选择及控制主逻辑
   ******************************************************************************
 */
@@ -15,7 +15,6 @@
 
 //#region /*******************************发射模式选择与更新相关函数********************************************/
 /********************* 模式切换 **********************/
-
 //TODO：发射状态机未完善
 // 任意状态 -> Debug: GstGMSH_Debug_Flags的发射测试标志位或拨弹测试标志位置1
 bool _Is_Shooter_Debug(void)
@@ -35,7 +34,7 @@ bool _Is_Any_to_Safe(void)
     {return false;}
 }
 
-// Safe -> RC:
+// Safe -> RC: 云台进入遥控器Free模式
 bool _Is_Safe_to_RC(void)
 {
     if(GEMGM_Mode == GMMode_RC_Free)
@@ -44,7 +43,7 @@ bool _Is_Safe_to_RC(void)
     {return false;}
 }
 
-// Safe -> KeyMouse: 
+// Safe -> KeyMouse: 云台进入键鼠模式
 bool _Is_Safe_to_KeyMouse(void)
 {
     if(GEMGM_Mode == GMMode_KeyMouse)
@@ -125,8 +124,6 @@ void SHCtrl_Safe(void)
 		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
 		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
 		SupplyPellet_TD.x2 = 0.0f;
-        
-		//TODO：摩擦轮前置处理
     }
 
     FrictionWheel_Safe();
@@ -153,8 +150,6 @@ void SHCtrl_Debug(void)
 		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
 		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
 		SupplyPellet_TD.x2 = 0.0f;
-
-		//TODO：摩擦轮前置处理
     }
 
     FrictionWheel_Debug();
@@ -181,8 +176,6 @@ void SHCtrl_RC(void)
 		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
 		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
 		SupplyPellet_TD.x2 = 0.0f;
-
-		//TODO：摩擦轮前置处理
     }
     
     FrictionWheel_RCCtrl();
@@ -209,8 +202,6 @@ void SHCtrl_KeyMouse(void)
 		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
 		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
 		SupplyPellet_TD.x2 = 0.0f;
-
-		//TODO：摩擦轮前置处理
     }
     
     FrictionWheel_KeyMouseCtrl();

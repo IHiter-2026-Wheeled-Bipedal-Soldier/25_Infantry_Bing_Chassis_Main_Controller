@@ -27,7 +27,7 @@ bool _Is_Gimbal_Debug(void)
     {return false;}
 }
 
-// 任意状态 -> Disabled: 左拨杆在下且右拨杆在上
+// 任意状态 -> Disabled: 底盘进入安全模式(手动安全或自动安全)
 bool _Is_Any_to_Disabled(void)
 {
     if(GEMCH_Mode == CHMode_ManualSafe || GEMCH_Mode == CHMode_AutoSafe)
@@ -36,10 +36,10 @@ bool _Is_Any_to_Disabled(void)
     {return false;}
 }
 
-// Disabled -> RC_Free: 
+// Disabled -> RC_Free: 底盘进入遥控器待机Standby模式
 bool _Is_Disabled_to_RCFree(void)
 {
-    if(GEMCH_Mode == CHMode_RC_Standby)// || GEMCH_Mode == CHMode_RC_StandUp || GEMCH_Mode == CHMode_RC_Jump || GEMCH_Mode == CHMode_RC_Free || GEMCH_Mode == CHMode_RC_SitDown || GEMCH_Mode == CHMode_RC_OffGround
+    if(GEMCH_Mode == CHMode_RC_Standby)
     {return true;}
     else
     {return false;}
@@ -54,19 +54,10 @@ bool _Is_Disabled_to_RCFollow(void)
     {return false;}
 }
 
-// Disabled -> KeyMouse: 底盘进入非安全模式(键鼠模式)
+// Disabled -> KeyMouse: 底盘进入键鼠待机Standby模式
 bool _Is_Disabled_to_KeyMouse(void)
 {
     if(GEMCH_Mode == CHMode_KeyMouse_Standby)
-    {return true;}
-    else
-    {return false;}
-}
-
-// Disabled -> KeyMouse: 底盘进入非安全模式(键鼠模式)
-bool _Is_Disabled_to_AutoAim(void)
-{
-    if(GEMCH_Mode == CHMode_RC_Standby)
     {return true;}
     else
     {return false;}
@@ -99,7 +90,7 @@ bool _Is_RCFree_to_AutoAim(void)
     {return false;}
 }
 
-// KeyMouse -> AutoAim: 鼠标右键开启辅瞄
+// KeyMouse -> AutoAim: 鼠标右键按下，视觉找到目标并且小电脑接收帧率正常
 bool _Is_KeyMouse_to_AutoAim(void)
 {
     if(GST_Receiver.ST_Mouse.Right == 1 && GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == true && GST_SystemMonitor.USART6Rx_fps >= 10)
@@ -112,9 +103,7 @@ bool _Is_KeyMouse_to_AutoAim(void)
 bool _Is_KeyMouse_to_Buff_Small(void)
 {
     // if(PRESSED_F == TRUE && PRESSED_F_Pre == FALSE)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -122,9 +111,7 @@ bool _Is_KeyMouse_to_Buff_Small(void)
 bool _Is_KeyMouse_to_Buff_Big(void)
 {
     // if(PRESSED_G == TRUE && PRESSED_G_Pre == FALSE)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -132,9 +119,7 @@ bool _Is_KeyMouse_to_Buff_Big(void)
 bool _Is_KeyMouse_to_Buff_Interfere_Small(void)
 {
     // if(PRESSED_Z == TRUE && PRESSED_Z_Pre == FALSE)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -142,13 +127,11 @@ bool _Is_KeyMouse_to_Buff_Interfere_Small(void)
 bool _Is_KeyMouse_to_Buff_Interfere_Big(void)
 {
     // if(PRESSED_X == TRUE && PRESSED_X_Pre == FALSE)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
-// AutoAim -> KeyMouse: 鼠标右键关闭辅瞄
+// AutoAim -> KeyMouse: 鼠标右键松开，并且底盘为键鼠跟随模式
 bool _Is_AutoAim_to_KeyMouse(void)
 {
     if(GEMCH_Mode == CHMode_KeyMouse_Follow && GST_Receiver.ST_Mouse.Right == 0)
@@ -157,7 +140,7 @@ bool _Is_AutoAim_to_KeyMouse(void)
     {return false;}
 }
 
-// AutoAim -> RC_Free: 视觉小电脑未找到目标
+// AutoAim -> RC_Free: 视觉小电脑未找到目标，或视觉小电脑接收帧率异常
 bool _Is_AutoAim_to_RCFree(void)
 {
     if(GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == false || GST_SystemMonitor.USART6Rx_fps < 10)//GEMCH_Mode == CHMode_RC_Free && 
@@ -166,7 +149,7 @@ bool _Is_AutoAim_to_RCFree(void)
     {return false;}
 }
 
-// AutoAim -> RC_Follow: 底盘进入安全模式
+// AutoAim -> RC_Follow: 
 bool _Is_AutoAim_to_RCFollow(void)
 {
     if(GEMCH_Mode == CHMode_RC_Follow && GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == false)
@@ -179,9 +162,7 @@ bool _Is_AutoAim_to_RCFollow(void)
 bool _Is_Buff_Small_to_KeyMouse(void)
 {
     // if(PRESSED_F == TRUE && PRESSED_F_Pre == FALSE)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -189,9 +170,7 @@ bool _Is_Buff_Small_to_KeyMouse(void)
 bool _Is_Buff_Small_to_RCFree(void)
 {
     // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -199,9 +178,7 @@ bool _Is_Buff_Small_to_RCFree(void)
 bool _Is_Buff_Small_to_RCFollow(void)
 {
     // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -209,9 +186,7 @@ bool _Is_Buff_Small_to_RCFollow(void)
 bool _Is_Buff_Big_to_KeyMouse(void)
 {
     // if(PRESSED_G == TRUE && PRESSED_G_Pre == FALSE)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -219,9 +194,7 @@ bool _Is_Buff_Big_to_KeyMouse(void)
 bool _Is_Buff_Big_to_RCFree(void)
 {
     // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -229,9 +202,7 @@ bool _Is_Buff_Big_to_RCFree(void)
 bool _Is_Buff_Big_to_RCFollow(void)
 {
     // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -239,9 +210,7 @@ bool _Is_Buff_Big_to_RCFollow(void)
 bool _Is_Buff_Interfere_Small_to_KeyMouse(void)
 {
     // if(PRESSED_Z == TRUE && PRESSED_Z_Pre == FALSE)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -249,9 +218,7 @@ bool _Is_Buff_Interfere_Small_to_KeyMouse(void)
 bool _Is_Buff_Interfere_Small_to_RCFree(void)
 {
     // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -259,9 +226,7 @@ bool _Is_Buff_Interfere_Small_to_RCFree(void)
 bool _Is_Buff_Interfere_Small_to_RCFollow(void)
 {
     // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -269,9 +234,7 @@ bool _Is_Buff_Interfere_Small_to_RCFollow(void)
 bool _Is_Buff_Interfere_Big_to_KeyMouse(void)
 {
     // if(PRESSED_X == TRUE && PRESSED_X_Pre == FALSE)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -279,9 +242,7 @@ bool _Is_Buff_Interfere_Big_to_KeyMouse(void)
 bool _Is_Buff_Interfere_Big_to_RCFree(void)
 {
     // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
@@ -289,17 +250,15 @@ bool _Is_Buff_Interfere_Big_to_RCFree(void)
 bool _Is_Buff_Interfere_Big_to_RCFollow(void)
 {
     // if(GEMCH_Mode == CHMode_RC_ManualSafe || GEMCH_Mode == CHMode_RC_AutoSafe)
-    // {
-    //     return true;
-    // }
+    // {return true;}
     return false;
 }
 
 /**
   * @brief  云台模式切换函数（状态机）
-  * @note   根据不同的条件切换云台的模式，要注意优先级的问题，最高优先级是Disabled（全局中断）
+  * @note   根据不同的条件切换云台的模式，要注意优先级的问题，最高优先级是Debug和Disabled（全局中断）
   *         次高优先级是RC_Free/RC_Follow/KeyMouse基础控制模式
-  *         最低优先级是AutoAim/Buff视觉增强模式
+  *         最低优先级是AutoAim/Buff视觉辅助模式
   * @param  无
   * @retval GMMode_EnumTypeDef的枚举类型，云台的工作状态
 */

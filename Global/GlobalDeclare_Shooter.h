@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
   * @file    GlobalDeclare_Shooter.h
-  * @author  26赛季，平衡步兵电控，马帅
-  * @date    2026.1.21
+  * @author  26赛季，平衡步兵电控，苏文远
+  * @date    2026.3.10
   * @brief   用来声明、引出与发射有关的全局变量
   ******************************************************************************
 */
@@ -79,12 +79,12 @@ extern int Locked_Rotor_Protect_Cnt;			// 堵转保护的计时器
 typedef struct
 {
     /*电机相关*/
-    float SupplyPellet_PosDes;  //拨弹电机角度目标值，单位度（注意是减速箱输出端角度）
-    float SupplyPellet_VelDes;  //拨弹电机速度目标值，单位度/s（注意是减速箱输出端角速度）
-    float SupplyPellet_PosFB;   //拨弹电机角度反馈值，单位度（注意是减速箱输出端角度）
-    float SupplyPellet_VelFB;   //拨弹电机速度反馈值，单位度/s（注意是减速箱输出端角速度）
-    float SupplyPellet_TorqueFB;//拨弹电机力矩反馈值，单位Nm（注意不是减速箱输出端力矩）
-    float SupplyPellet_Current; //拨弹电机CAN发送电流，注意不是实际电流
+    float SupplyPellet_PosDes;   //拨弹电机角度目标值，单位度（注意是减速箱输出端角度）
+    float SupplyPellet_VelDes;   //拨弹电机速度目标值，单位度/s（注意是减速箱输出端角速度）
+    float SupplyPellet_PosFB;    //拨弹电机角度反馈值，单位度（注意是减速箱输出端角度）
+    float SupplyPellet_VelFB;    //拨弹电机速度反馈值，单位度/s（注意是减速箱输出端角速度）
+    float SupplyPellet_TorqueFB; //拨弹电机力矩反馈值，单位Nm（注意不是减速箱输出端力矩）
+    float SupplyPellet_Current;  //拨弹电机CAN发送电流，注意不是实际电流
 
     /*遥控器操作相关*/
     //单发模式相关
@@ -122,8 +122,8 @@ typedef struct
     /*卡弹（拨弹电机堵转）相关*/
     bool IS_Bullet_Blocked_Flag;		     //卡弹判断标志位
     bool Bullet_Blocked_Protection_Flag;     //卡弹保护标志位
-    int Bullet_Blocked_Cnt;			         //卡弹判断计数器
-    int Locked_Rotor_Protect_Cnt;	         //卡弹保护的计时器
+    uint16_t Bullet_Blocked_Cnt;			 //卡弹判断计数器
+    uint16_t Locked_Rotor_Protect_Cnt;	     //卡弹保护的计时器
 
 }Shooter_StructTypeDef;
 
