@@ -5,7 +5,7 @@ STM32/Listings/
 build/
 
 
-# Keil 项目临时文件
+# 项目临时文件
 Project/
 ProjectMemory/
 
