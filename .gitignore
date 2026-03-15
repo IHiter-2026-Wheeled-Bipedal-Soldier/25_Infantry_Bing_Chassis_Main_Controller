@@ -9,14 +9,7 @@ build/
 Project/
 ProjectMemory/
 
-# 应用输出
-
-# 通用编译产物
-*.o
-*.d
-*.crf
-*.lst
-
 # IDE 配置
 .vscode/
 .github/
+.obsidian/
