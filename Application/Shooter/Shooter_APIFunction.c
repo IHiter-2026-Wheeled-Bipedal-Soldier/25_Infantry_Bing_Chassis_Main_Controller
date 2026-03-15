@@ -81,6 +81,12 @@ void FrictionWheel_Debug(void)
 void FrictionWheel_RCCtrl(void)
 {
 	float FWSpeed_Datum_temp = 0.0f; //摩擦轮目标转速临时变量
+	
+	//切换摩擦轮状态
+	if(Gst_CHSH_RollerMode_Paras.FrictionMode_Flag == 1)
+	{
+		ShooterSafetyLocked = !ShooterSafetyLocked;
+	}
 
 	if(ShooterSafetyLocked == false) //防止误打弹，增加发射安全锁
 	{
@@ -115,10 +121,8 @@ void FrictionWheel_KeyMouseCtrl(void)
 	float FWSpeed_Datum_temp = 0.0f; //摩擦轮目标转速临时变量
 
 	//按键F控制发射安全锁的开关
-	if(PRESSED_F == true && PRESSED_F_Pre == false)
-	{
-		ShooterSafetyLocked = !ShooterSafetyLocked;
-	}
+	if(IS_Key_ShortClick(&Key_F))
+	{ShooterSafetyLocked = !ShooterSafetyLocked;}
 
 	if(ShooterSafetyLocked == false) //防止误打弹，增加发射安全锁
 	{
@@ -161,21 +165,10 @@ void FrictionWheel_KeyMouseCtrl(void)
   */
 void SupplyPellet_Safe(void)
 {
-	/***********************前置处理**************************/
-    /*状态切换*/
-    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
-    {
-		PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
-		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
-		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
-		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
-		SupplyPellet_TD.x2 = 0.0f;
-
-		//TODO：摩擦轮前置处理
-    }
-
+	/*拨弹电机阻尼控制*/
 	PID_SetKpKiKd(&GstSH_SupplyPelletPosPID, 0.0f, 0.0f, 0.0f);
 	PID_SetKpKiKd(&GstSH_SupplyPelletVelPID, GstGMSH_Debug_Paras.SupplyPelletVelKp, GstGMSH_Debug_Paras.SupplyPelletVelKi, GstGMSH_Debug_Paras.SupplyPelletVelKd);
+
 	/*正在发射标志位置0*/
 	GstSH_Paras.RC_Shooting_Flag       = false;
 	GstSH_Paras.KeyMouse_Shooting_Flag = false;
@@ -204,19 +197,6 @@ void SupplyPellet_Safe(void)
   */
 void SupplyPellet_Debug(void)
 {
-	/***********************前置处理**************************/
-    /*状态切换*/
-    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
-    {
-		PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
-		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
-		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
-		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
-		SupplyPellet_TD.x2 = 0.0f;
-
-		//TODO：摩擦轮前置处理
-    }
-
 	if(GstGMSH_Debug_Flags.SupplyPellet_Test_Flag == 1)
 	{
 		PID_SetKpKiKd(&GstSH_SupplyPelletPosPID, GstGMSH_Debug_Paras.SupplyPelletPosKp, GstGMSH_Debug_Paras.SupplyPelletPosKi, GstGMSH_Debug_Paras.SupplyPelletPosKd);
@@ -276,58 +256,87 @@ void SupplyPellet_RCCtrl(void)
 {
 	//TODO:修改了单发逻辑，因此GstGM_MainCtrl.ST_Tx.SupplyPellet_Flag.Final_ShootOrNot_Flag目前不准（虽然但是原来也不准），后续想一想这个标志位怎么用
 
-	/***********************前置处理**************************/
-    /*状态切换*/
-    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
-    {
-		PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
-		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
-		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
-		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
-		SupplyPellet_TD.x2 = 0.0f;
-
-		//TODO：摩擦轮前置处理
-    }
-
 	///*Is_Heat_Safe()*/
 	if(__IS_FrictionWheel_Ready())
 	{
 		PID_SetKpKiKd(&GstSH_SupplyPelletPosPID, PID_SupplyPos_Kp, PID_SupplyPos_Ki, PID_SupplyPos_Kd);
 		PID_SetKpKiKd(&GstSH_SupplyPelletVelPID, PID_SupplyVel_Kp, PID_SupplyVel_Ki, PID_SupplyVel_Kd);
 
-		if(__IS_RC_Single_Shoot() || __IS_RC_Continuous_Shoot())//遥控器手动拨弹
+		//TODO：老普步是手动打弹，先不引入遥控器全自动辅瞄
+		// if(RC_AUTO_Control_Continuous_Shoot()) //遥控器辅瞄模式，视觉控制打弹
+		// {
+		// 	if(GST_Vision.AimAssistDataReceiveFrame.ShootOrNot == 1 || GST_SystemMonitor.USART6Rx_fps <= 15)
+		// 	{
+		// 		if(GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == true)
+		// 		{
+		// 			if(GstSH_Paras.RC_IF_Shoot_Cnt >= 60 && GST_Vision.AimAssistDataReceiveFrame.ShootOrNot == true) //两次弹丸发射间隔至少为60ms，并且ShootOrNot标志位置1
+		// 			{
+		// 				/*正在发射标志位置1*/
+		// 				GstSH_Paras.RC_Shooting_Flag = true;
+		// 				/*发射间隔计数器清零*/
+		// 				GstSH_Paras.RC_IF_Shoot_Cnt = 0;
+
+		// 				/*目标设定*/
+		// 				GstSH_Paras.SupplyPellet_PosDes += SupplyStep;	//每次发射目标位置增加一个步进角度
+		// 			}
+		// 			else
+		// 			{
+		// 				/*正在发射标志位置0*/
+		// 				GstSH_Paras.RC_Shooting_Flag = false;
+
+		// 				/*目标设定*/
+		// 				GstSH_Paras.SupplyPellet_PosDes = GstSH_Paras.SupplyPellet_PosDes;	//保持当前位置
+		// 			}
+		// 		}
+		// 	}
+		// }
+		if(__IS_RC_Single_Shoot() || __IS_RC_Continuous_Shoot()) //遥控器手动拨弹
 		{
-			if(GstSH_Paras.RC_IF_Shoot_Cnt >= 60)	//两次弹丸发射间隔为60ms
+			/*视觉辅瞄打弹*/
+			if(Vision_State_Enable_Now == Vision_Enable && GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == true)
 			{
-				/*正在发射标志位置1*/
-				GstSH_Paras.RC_Shooting_Flag = true;
-				/*发射间隔计数器清零*/
-				GstSH_Paras.RC_IF_Shoot_Cnt = 0;
+				if(GstSH_Paras.RC_IF_Shoot_Cnt >= 60 && GST_Vision.AimAssistDataReceiveFrame.ShootOrNot == true) //两次弹丸发射间隔至少为60ms，并且ShootOrNot标志位置1
+				{
+					/*正在发射标志位置1*/
+					GstSH_Paras.RC_Shooting_Flag = true;
+					/*发射间隔计数器清零*/
+					GstSH_Paras.RC_IF_Shoot_Cnt = 0;
 
-				/*目标设定*/
-				GstSH_Paras.SupplyPellet_PosDes += SupplyStep;	//每次发射目标位置增加一个步进角度
+					/*目标设定*/
+					GstSH_Paras.SupplyPellet_PosDes += SupplyStep;	//每次发射目标位置增加一个步进角度
+				}
+				else
+				{
+					/*正在发射标志位置0*/
+					GstSH_Paras.RC_Shooting_Flag = false;
+
+					/*目标设定*/
+					GstSH_Paras.SupplyPellet_PosDes = GstSH_Paras.SupplyPellet_PosDes;	//保持当前位置
+				}
 			}
-			else
+			else //手动打弹
 			{
-				/*正在发射标志位置0*/
-				GstSH_Paras.RC_Shooting_Flag = false;
+				if(GstSH_Paras.RC_IF_Shoot_Cnt >= 60)	//两次弹丸发射间隔为60ms
+				{
+					/*正在发射标志位置1*/
+					GstSH_Paras.RC_Shooting_Flag = true;
+					/*发射间隔计数器清零*/
+					GstSH_Paras.RC_IF_Shoot_Cnt = 0;
 
-				/*目标设定*/
-				GstSH_Paras.SupplyPellet_PosDes = GstSH_Paras.SupplyPellet_PosDes;	//保持当前位置
+					/*目标设定*/
+					GstSH_Paras.SupplyPellet_PosDes += SupplyStep;	//每次发射目标位置增加一个步进角度
+				}
+				else
+				{
+					/*正在发射标志位置0*/
+					GstSH_Paras.RC_Shooting_Flag = false;
+
+					/*目标设定*/
+					GstSH_Paras.SupplyPellet_PosDes = GstSH_Paras.SupplyPellet_PosDes;	//保持当前位置
+				}
 			}
 		}
-		else if(RC_AUTO_Control_Continuous_Shoot())//遥控器辅瞄模式，视觉控制打弹
-		{
-			if(GST_Vision.AimAssistDataReceiveFrame.ShootOrNot == 1 || GST_SystemMonitor.USART6Rx_fps <= 15)
-			{
-				// if( struct_shoot.RC_IF_Shoot_cnt >= 60.0f)
-				// {
-				// 	GstGM_MainCtrl.ST_Tx.SupplyPellet_Flag.Final_ShootOrNot_Flag = 1;
-				// 	struct_shoot.RC_IF_Shoot_cnt= 0;
-				// }
-			}
-		}
-		else//未打弹
+		else //未打弹
 		{
 			/*正在发射标志位置0*/
 			GstSH_Paras.RC_Shooting_Flag = false;
@@ -372,57 +381,65 @@ void SupplyPellet_KeyMouseCtrl(void)
 {
 	//TODO:修改了单发逻辑，因此GstGM_MainCtrl.ST_Tx.SupplyPellet_Flag.Final_ShootOrNot_Flag目前不准（虽然但是原来也不准），后续想一想这个标志位怎么用
 
-	/***********************前置处理**************************/
-    /*状态切换*/
-    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
-    {
-		PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
-		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
-		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
-		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
-		SupplyPellet_TD.x2 = 0.0f;
-
-		//TODO：摩擦轮前置处理
-    }
-
 	///*Is_Heat_Safe()*/
-	if(__IS_FrictionWheel_Ready())
+	if(__IS_FrictionWheel_Ready() && ShooterSafetyLocked == false)
 	{
 		PID_SetKpKiKd(&GstSH_SupplyPelletPosPID, PID_SupplyPos_Kp, PID_SupplyPos_Ki, PID_SupplyPos_Kd);
 		PID_SetKpKiKd(&GstSH_SupplyPelletVelPID, PID_SupplyVel_Kp, PID_SupplyVel_Ki, PID_SupplyVel_Kd);
 
-		if(__IS_KeyMouse_Single_Shoot() || __IS_KeyMouse_Continuous_Shoot())//键鼠手动拨弹
+		if(__IS_KeyMouse_Single_Shoot() || __IS_KeyMouse_Continuous_Shoot())//键鼠控制打弹
 		{
-			if(GstSH_Paras.KeyMouse_IF_Shoot_Cnt >= 60)	//两次弹丸发射间隔为60ms
+			/*右键：视觉辅瞄打弹*/
+			if(GST_Receiver.ST_Mouse.Right == true)
 			{
-				/*正在发射标志位置1*/
-				GstSH_Paras.KeyMouse_Shooting_Flag = true;
-				/*发射间隔计数器清零*/
-				GstSH_Paras.KeyMouse_IF_Shoot_Cnt = 0;
-
-				/*目标设定*/
-				GstSH_Paras.SupplyPellet_PosDes += SupplyStep;	//每次发射目标位置增加一个步进角度
+				/*视觉使能并找到目标*/
+				if(Vision_State_Enable_Now == Vision_Enable && GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot == true)
+				{
+					if(GstSH_Paras.KeyMouse_IF_Shoot_Cnt >= 60 && GST_Vision.AimAssistDataReceiveFrame.ShootOrNot == true) //两次弹丸发射间隔至少为60ms，并且ShootOrNot标志位置1
+					{
+						/*正在发射标志位置1*/
+						GstSH_Paras.KeyMouse_Shooting_Flag = true;
+						/*发射间隔计数器清零*/
+						GstSH_Paras.KeyMouse_IF_Shoot_Cnt = 0;
+						/*目标设定*/
+						GstSH_Paras.SupplyPellet_PosDes += SupplyStep;	//每次发射目标位置增加一个步进角度
+					}
+					else
+					{
+						/*正在发射标志位置0*/
+						GstSH_Paras.KeyMouse_Shooting_Flag = false;
+						/*目标设定*/
+						GstSH_Paras.SupplyPellet_PosDes = GstSH_Paras.SupplyPellet_PosDes;	//保持当前位置
+					}
+				}
+				else
+				{
+					/*正在发射标志位置0*/
+					GstSH_Paras.KeyMouse_Shooting_Flag = false;
+					/*目标设定*/
+					GstSH_Paras.SupplyPellet_PosDes = GstSH_Paras.SupplyPellet_PosDes;	//保持当前位置
+				}
 			}
-			else
+			else //左键：手动打弹
 			{
-				/*正在发射标志位置0*/
-				GstSH_Paras.KeyMouse_Shooting_Flag = false;
-
-				/*目标设定*/
-				GstSH_Paras.SupplyPellet_PosDes = GstSH_Paras.SupplyPellet_PosDes;	//保持当前位置
+				if(GstSH_Paras.KeyMouse_IF_Shoot_Cnt >= 60)	//两次弹丸发射间隔为60ms
+				{
+					/*正在发射标志位置1*/
+					GstSH_Paras.KeyMouse_Shooting_Flag = true;
+					/*发射间隔计数器清零*/
+					GstSH_Paras.KeyMouse_IF_Shoot_Cnt = 0;
+					/*目标设定*/
+					GstSH_Paras.SupplyPellet_PosDes += SupplyStep;	//每次发射目标位置增加一个步进角度
+				}
+				else
+				{
+					/*正在发射标志位置0*/
+					GstSH_Paras.KeyMouse_Shooting_Flag = false;
+					/*目标设定*/
+					GstSH_Paras.SupplyPellet_PosDes = GstSH_Paras.SupplyPellet_PosDes;	//保持当前位置
+				}
 			}
 		}
-		// else if(RC_AUTO_Control_Continuous_Shoot())//遥控器辅瞄模式，视觉控制打弹
-		// {
-		// 	if(GST_Vision.AimAssistDataReceiveFrame.ShootOrNot == 1 || GST_SystemMonitor.USART6Rx_fps <= 15)
-		// 	{
-		// 		// if( struct_shoot.RC_IF_Shoot_cnt >= 60.0f)
-		// 		// {
-		// 		// 	GstGM_MainCtrl.ST_Tx.SupplyPellet_Flag.Final_ShootOrNot_Flag = 1;
-		// 		// 	struct_shoot.RC_IF_Shoot_cnt= 0;
-		// 		// }
-		// 	}
-		// }
 		else//未打弹
 		{
 			/*正在发射标志位置0*/
@@ -495,8 +512,8 @@ void Bullet_Blocked_Protection(void)
 {
     //卡弹保护
     //卡弹条件检测（位置+速度双阈值判断）
-	if((MyAbsf(GstSH_SupplyPelletPosPID.Des - GstSH_SupplyPelletPosPID.FB) > 4.0f*MyAbsf(SupplyStep))
-		&& (MyAbsf(GstSH_SupplyPelletVelPID.FB) < 20.0f))
+	if((MyAbsf(GstSH_SupplyPelletPosPID.Des - GstSH_SupplyPelletPosPID.FB) > 3.0f*MyAbsf(SupplyStep))
+		|| GstSH_Paras.SupplyPellet_TorqueFB > 6.5f)
 	{
 		//卡弹状态确认与保护触发
 		GstSH_Paras.Bullet_Blocked_Cnt ++;
@@ -525,13 +542,10 @@ void Bullet_Blocked_Protection(void)
 	if(GstSH_Paras.Bullet_Blocked_Protection_Flag == true)
 	{
 		// GstSH_SupplyPelletVelPID.U = 0.0f; //拨弹电机输出设为0，停止拨弹
-		GstSH_SupplyPelletPosPID.Des -= (int)(MyAbsf(GstSH_SupplyPelletPosPID.FB - GstSH_SupplyPelletPosPID.Des)/SupplyStep)*SupplyStep; //拨弹电机回退
-		if (Locked_Rotor_Protect_Cnt >= 1000)
-		{
-			Locked_Rotor_Protect_Cnt = 0;
-			Locked_Rotor_Protect_Flag = false;
-		}
-		Locked_Rotor_Protect_Cnt++;
+		GstSH_SupplyPelletPosPID.Des = GstSH_SupplyPelletPosPID.FB; //拨弹电机目标位置设为当前位置
+		GstSH_SupplyPelletPosPID.Des -= 0.3f*SupplyStep; //拨弹电机回退
+		if(GstSH_Paras.SupplyPellet_TorqueFB < 2.5f) //Locked_Rotor_Protect_Cnt >= 1000 || 
+		{Locked_Rotor_Protect_Flag = false;}
 	}
 }
 
@@ -656,7 +670,7 @@ bool __IS_RC_Continuous_Shoot(void)
 		GstSH_Paras.RC_Continuous_Shoot_Flag = 0;
 	}
 
-	if (GstSH_Paras.RC_Continuous_Shoot_Flag == 0)
+	if(GstSH_Paras.RC_Continuous_Shoot_Flag == 0)
 		return FALSE; //不允许发射
 	else
 		return TRUE;  //允许发射
@@ -668,30 +682,10 @@ bool __IS_RC_Continuous_Shoot(void)
 ----------------------------------------------------------------------------------------*/
 bool RC_AUTO_Control_Continuous_Shoot(void)
 {
-    // if(IsRollerUp()) //遥控器滚轮上拨
-	// {
-	// 	struct_shoot.RC_AUTO_IF_Shooting_cnt++;
-	// }
-	// else
-	// {
-	// 	struct_shoot.RC_AUTO_IF_Shooting_cnt = 0;
-	// }
-
-	// if (struct_shoot.RC_AUTO_IF_Shooting_cnt > 500)
-	// {
-	// 	struct_shoot.RC_AUTO_Shooting_flag = 1;
-	// }
-	// else
-	// {
-	// 	struct_shoot.RC_AUTO_Shooting_flag = 0;
-	// }
-
-	// if (struct_shoot.RC_AUTO_Shooting_flag == 0)
-	// 	return FALSE; // 不允许发射
-	// else
-	// 	return TRUE; // 允许发射
-
-	return FALSE; //TODO:目前先关闭这个功能，后续再完善
+	if(Vision_State_Enable_Now == Vision_Enable)
+		return FALSE; // 不允许发射
+	else
+		return TRUE; // 允许发射
 }
 
 /**
@@ -702,7 +696,7 @@ bool RC_AUTO_Control_Continuous_Shoot(void)
   */
 bool __IS_KeyMouse_Single_Shoot(void)
 {
-    // 获取当前鼠标左键状态（按下=1，未按下=0）
+    // 获取当前鼠标左键/右键状态（按下=1，未按下=0）
     GstSH_Paras.KeyMouse_Single_Shoot_Now_status = (GST_Receiver.ST_Mouse.Left || GST_Receiver.ST_Mouse.Right);
 
     // 边沿检测：从按下变为回正松开（下降沿）

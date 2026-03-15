@@ -30,7 +30,7 @@ void ShooterTask(void* arg)
 
     while(1)
     {
-        // ShooterControl();       //发射的总控制   //待完成
+        ShooterControl();       //发射的总控制   //待完成
 
         GST_SystemMonitor.ShooterTask_cnt++;		//发射帧率统计：cnt计数
         vTaskDelayUntil(&S_lastWakeTimeShooterTask, GSH_TaskPeriod); //绝对延时

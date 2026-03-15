@@ -17,24 +17,25 @@
 #include "GlobalDeclare_Chassis.h"
 #include "GlobalDeclare_General.h"
 #include "GlobalDeclare_Gimbal.h"
-#include "arm_math.h"
+#include "Algorithm_Simple.h"
 #include "stdarg.h"
 #include "stm32f4xx.h"
+#include <math.h>
+#include <arm_math.h>
 
 /****************************常量、宏定义定义（不需要修改）****************************/
 /********串口发送/接收缓冲区长度********/
-const uint8_t UA1RxDMAbuf_LEN =
-    18;  // 串口1接收缓冲区大小。遥控接收机DR16每隔7ms通过DBus发送一帧数据（18字节）
-const uint8_t UA2TxDMAbuf_LEN = 6;     // 云台云控IMU1控制板Tx
-const uint8_t UA2RxDMAbuf_LEN = 38;    // 云台云控IMU1控制板Rx
-const uint8_t UA3TxDMAbuf_LEN = 128;   // Debug用
-const uint8_t UA3RxDMAbuf_LEN = 128;   // Debug用
-const uint8_t UA4RxDMAbuf_LEN = 106;   // 底盘云控IMU2
-const uint8_t UA4TxDMAbuf_LEN = 66;    // 底盘云控IMU2
-const uint8_t UA5TxDMAbuf_LEN = 128;   // 裁判系统
+const uint8_t UA1RxDMAbuf_LEN  = 18;   // 串口1接收缓冲区大小。遥控接收机DR16每隔7ms通过DBus发送一帧数据（18字节）
+const uint8_t UA2TxDMAbuf_LEN  = 6;    // 云台云控IMU1控制板Tx
+const uint8_t UA2RxDMAbuf_LEN  = 38;   // 云台云控IMU1控制板Rx
+const uint8_t UA3TxDMAbuf_LEN  = 128;  // Debug用
+const uint8_t UA3RxDMAbuf_LEN  = 128;  // Debug用
+const uint8_t UA4RxDMAbuf_LEN  = 106;  // 底盘云控IMU2Rx
+const uint8_t UA4TxDMAbuf_LEN  = 66;   // 底盘云控IMU2Tx
+const uint8_t UA5TxDMAbuf_LEN  = 128;  // 裁判系统
 const uint16_t UA5RxDMAbuf_LEN = 500;  // 裁判系统
-const uint8_t UA6TxDMAbuf_LEN = 74;    // 视觉（小电脑）
-const uint8_t UA6RxDMAbuf_LEN = 42;    // 视觉（小电脑）
+const uint8_t UA6TxDMAbuf_LEN  = 78;   // 视觉（小电脑）
+const uint8_t UA6RxDMAbuf_LEN  = 42;   // 视觉（小电脑）
 
 /********CRC校验相关********/
 const uint16_t CRC16_InitValue = 0xffff;  //.c文件私有，不extern
@@ -218,8 +219,73 @@ void UA1Rx_ReceiverDataProcess(void) {
     /**************************************************键盘数据解码***************************************************/
     GST_Receiver.usKeyboard =
         UA1RxDMAbuf[14] | (UA1RxDMAbuf[15] << 8);  // 键盘值
+
+    /*键鼠数据更新与接收*/
+    Key_W.Key_Pre = Key_W.Key_Now;
+    Key_S.Key_Pre = Key_S.Key_Now;
+    Key_A.Key_Pre = Key_A.Key_Now;
+    Key_D.Key_Pre = Key_D.Key_Now;
+    Key_Q.Key_Pre = Key_Q.Key_Now;
+    Key_E.Key_Pre = Key_E.Key_Now;
+    Key_SHIFT.Key_Pre = Key_SHIFT.Key_Now;
+    Key_CTRL.Key_Pre = Key_CTRL.Key_Now;
+    Key_R.Key_Pre = Key_R.Key_Now;
+    Key_F.Key_Pre = Key_F.Key_Now;
+    Key_G.Key_Pre = Key_G.Key_Now;
+    Key_Z.Key_Pre = Key_Z.Key_Now;
+    Key_X.Key_Pre = Key_X.Key_Now;
+    Key_C.Key_Pre = Key_C.Key_Now;
+    Key_V.Key_Pre = Key_V.Key_Now;
+    Key_B.Key_Pre = Key_B.Key_Now;
+
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_W) Key_W.Key_Now = TRUE;
+    else Key_W.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_S) Key_S.Key_Now = TRUE;
+    else Key_S.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_A) Key_A.Key_Now = TRUE;
+    else Key_A.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_D) Key_D.Key_Now = TRUE;
+    else Key_D.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_Q) Key_Q.Key_Now = TRUE;
+    else Key_Q.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_E) Key_E.Key_Now = TRUE;
+    else Key_E.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_R) Key_R.Key_Now = TRUE;
+    else Key_R.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_F) Key_F.Key_Now = TRUE;
+    else Key_F.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_G) Key_G.Key_Now = TRUE;
+    else Key_G.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_Z) Key_Z.Key_Now = TRUE;
+    else Key_Z.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_X) Key_X.Key_Now = TRUE;
+    else Key_X.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_C) Key_C.Key_Now = TRUE;
+    else Key_C.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_V) Key_V.Key_Now = TRUE;
+    else Key_V.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_B) Key_B.Key_Now = TRUE;
+    else Key_B.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_SHIFT) Key_SHIFT.Key_Now = TRUE;
+    else Key_SHIFT.Key_Now = FALSE;
+    if(GST_Receiver.usKeyboard & KEY_PRESSED_OFFSET_CTRL) Key_CTRL.Key_Now = TRUE;
+    else Key_CTRL.Key_Now = FALSE;
+
+    //老代码的Tank模式，不知道有什么用
+    // if(Is_Tank)
+    // {
+    //     if(g_stDBus.usKeyboard & KEY_PRESSED_OFFSET_W) PRESSED_D = TRUE;
+    //     else PRESSED_D = FALSE;
+    //     if(g_stDBus.usKeyboard & KEY_PRESSED_OFFSET_S) PRESSED_A = TRUE;
+    //     else PRESSED_A = FALSE;
+    //     if(g_stDBus.usKeyboard & KEY_PRESSED_OFFSET_A) PRESSED_S = TRUE;
+    //     else PRESSED_S = FALSE;
+    //     if(g_stDBus.usKeyboard & KEY_PRESSED_OFFSET_D) PRESSED_W = TRUE;
+    //     else PRESSED_W = FALSE;
+    // }
 }
 
+//#region /********串口2云台云控IMU1接收、发送相关函数********/
 /**
  * @brief  串口2的接收校验函数，是一个简单的辅助函数，用__开头
  * @note   先判断帧头，然后CRC校验
@@ -301,7 +367,9 @@ void UA2Tx_SendDataToIMU1(void) {
                                     // units to be TRansferred
     DMA_Cmd(USART2_TX_STREAM, ENABLE);
 }
+//#endregion
 
+//#region /********串口3无限调试器发送相关函数********/
 /**
  * @brief  串口3调用DMA发送数据函数
  * @note   该函数用于DebugTask的时候打印相关数据
@@ -326,7 +394,9 @@ void USART3_DMA_printf(const char* fmt, ...) {
                                    // units to be Transferred
     DMA_Cmd(USART3_TX_STREAM, ENABLE);  // 启用串口DMA发送
 }
+//#endregion
 
+//#region /********串口4底盘云控IMU2接收、发送相关函数********/
 /**
  * @brief  串口4的接收校验函数，是一个简单的辅助函数，用__开头
  * @note   无CRC校验，直接判断帧头
@@ -362,8 +432,7 @@ void UA4Rx_IMU2DataProcess(void) {
 
 /**
  * @brief  串口4发送数据，主控>>IMU2底盘云控
- * @note
- * 向云控2发送数据，包括关节电机的角度、扭矩、转速，是否重启云控，是否进行腿部校准等
+ * @note   向云控2发送数据，包括关节电机的角度、扭矩、转速，是否重启云控，是否进行腿部校准等
  * @param  无
  * @retval 无
  */
@@ -420,7 +489,9 @@ void UA4Tx_SendDataToIMU2(void) {
                                     // units to be Transferred
     DMA_Cmd(UART4_TX_STREAM, ENABLE);  // 启用串口DMA发送
 }
+//#endregion
 
+//#region /********串口5接收裁判系统数据的相关函数********/
 /**
   * @brief  串口5接收数据，裁判系统>>主控
   * @note   接收裁判系统发送的相关数据并解析
@@ -698,5 +769,117 @@ void Append_CRC8_Check_Sum(uint8_t *pchMessage, uint32_t dwLength)
     ucCRC = Get_CRC8_Check_Sum ( (uint8_t *)pchMessage, dwLength-1, CRC8_INIT);
     pchMessage[dwLength-1] = ucCRC;
 }
+//#endregion
 
-// #pragma endregion
+//#region /********串口6与视觉小电脑通信的相关函数********/
+/**
+  * @brief  串口6的接收校验函数，是一个简单的辅助函数，用__开头
+  * @note   帧头 + CRC校验
+  * @param  无
+  * @retval false：错误  true：正确
+  */
+bool __UA6Rx_IsVerifySuccess(void)
+{
+    /*****************先进行帧头校验，再CRC校验*****************/
+    if(UA6RxDMAbuf[0] == 0x55 && UA6RxDMAbuf[1] == 0x00) //帧头校验
+    {
+        if(_CRC16_Verify(UA6RxDMAbuf, UA6RxDMAbuf_LEN) == 1) //帧尾CRC校验
+        {return true;}
+    }
+
+    /*****************校验没通过，返回错误*****************/
+    return false;
+}
+
+/**
+  * @brief  串口6接收数据，辅瞄小电脑->主控
+  * @note   接收辅瞄小电脑发送的相关数据并解析
+  * @param  无
+  * @retval 无
+*/
+void UA6Rx_VisionDataProcess(void)
+{
+    //TODO：之后设置局部变量，一大长串看着太乱了
+
+    if(__UA6Rx_IsVerifySuccess())
+    {
+        memcpy(&GST_Vision.AimAssistDataReceiveFrame, &UA6RxDMAbuf, UA6RxDMAbuf_LEN);
+		//视觉数据可能出现问题，因此将这一帧舍弃(老代码中有相关浮点数检测函数，此处暂未应用)
+        //如果视觉反馈数据与云台实际反馈数据相差超过90度，则认为视觉数据有问题，将视觉数据置为当前云台反馈值
+        if(MyAbsf(GST_Vision.AimAssistDataReceiveFrame.Pitch - Pitch_Motor_Paras.PosFB) > 90.0f || MyAbsf(GST_Vision.AimAssistDataReceiveFrame.Yaw - Yaw_Motor_Paras.PosFB) > 90.0f)		  
+        {
+			GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot = FALSE;
+            GST_Vision.AimAssistDataReceiveFrame.Pitch = Pitch_Motor_Paras.PosFB;
+            GST_Vision.AimAssistDataReceiveFrame.Yaw   = Yaw_Motor_Paras.PosFB;
+        }
+        else
+        {
+            //将目标值转换为离当前云台反馈值最近的角度
+            GST_Vision.AimAssistDataReceiveFrame.Yaw   = GST_Vision.AimAssistDataReceiveFrame.Yaw;
+            GST_Vision.AimAssistDataReceiveFrame.Pitch = GST_Vision.AimAssistDataReceiveFrame.Pitch;
+        }
+
+        //TODO：不知道什么逻辑
+        // Vision_ID  = Vision_State_Now&(~Vision_Enable);
+        // Vision_ID |= (GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot==true?Vision_Enable:Vision_Disable);	
+    }
+}
+
+/**
+  * @brief  串口6发送数据，主控->辅瞄小电脑
+  * @note   向辅瞄小电脑发送有关云台的数据
+  * @param  无
+  * @retval 无
+*/
+void UA6Tx_SendDataToVision(void)
+{
+    GST_Vision.AimAssistDataSendFrame.m_head[0]     = 0x55;
+    GST_Vision.AimAssistDataSendFrame.m_head[1]     = 0x00;
+	// if(G_ST_Game_Robot_Status.robot_id<=10)
+	// {
+    // 	GST_Vision.AimAssistDataSendFrame.m_id      = 0x09;
+	// }
+	// else
+	// {
+	// 	GST_Vision.AimAssistDataSendFrame.m_id      = 0x0A;
+	// }
+	GST_Vision.AimAssistDataSendFrame.m_length      = 18;
+    GST_Vision.AimAssistDataSendFrame.Pitch         = Pitch_Motor_Paras.PosFB;//Angle_Inf_To_180(Pitch_Motor_Paras.PosFB)
+	GST_Vision.AimAssistDataSendFrame.Yaw           = Yaw_Motor_Paras.PosFB; //Angle_Inf_To_180(Yaw_Motor_Paras.PosFB)
+	GST_Vision.AimAssistDataSendFrame.Rol           = GstGM_IMU1.ST_Rx.RollAngle; //Angle_Inf_To_180(GstGM_IMU1.ST_Rx.RollAngle)
+    // //辅瞄模式选择，用于发给辅瞄小电脑
+    // if (Vision_State_Mode_Now == Vision_SmallBuff)
+	// {
+	// 	GST_Vision.AimAssistDataSendFrame.pmflag = -1;
+	// }
+    // else if (Vision_State_Mode_Now == Vision_BigBuff) 
+	// {
+	// 	GST_Vision.AimAssistDataSendFrame.pmflag = -2;
+	// }
+	// else if (Vision_State_Mode_Now == Vision_Interfere_SmallBuff) 
+	// {
+	// 	GST_Vision.AimAssistDataSendFrame.pmflag = -3;
+	// }
+	// else if (Vision_State_Mode_Now == Vision_Interfere_BigBuff) 
+	// {
+	// 	GST_Vision.AimAssistDataSendFrame.pmflag = -4;
+	// }
+	// else
+	// {
+	// 	GST_Vision.AimAssistDataSendFrame.pmflag = 1;
+	// }
+
+    _CRC16_Append(&GST_Vision.AimAssistDataSendFrame.m_head[0], 78);
+    DMA_ClearITPendingBit(USART6_TX_STREAM, DMA_IT_TCIF6);	//开启DMA_Mode_Normal,即便没有使用完成中断也要软件清除，否则只发一次
+    DMA_Cmd(USART6_TX_STREAM, DISABLE);				        //设置当前计数值前先禁用DMA
+    USART6_TX_STREAM->M0AR = (uint32_t)&GST_Vision.AimAssistDataSendFrame;   //设置当前待发数据基地址:Memory0 tARget
+    USART6_TX_STREAM->NDTR = (uint32_t)UA6TxDMAbuf_LEN;     //设置当前待发的数据的数量:Number of Data units to be TRansferred
+    DMA_Cmd(USART6_TX_STREAM, ENABLE);
+
+    GST_SystemMonitor.USART6Tx_cnt++;
+}
+
+
+
+
+//#endregion

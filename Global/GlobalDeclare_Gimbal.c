@@ -26,11 +26,11 @@ const float      GGM_TaskTime   = (float)GGM_TaskPeriod/(float)configTICK_RATE_H
 /****************************************宏定义、常量定义（可能需要修改）****************************************/
 //#region /****TD相关系数****************************************/
 #define TD_SampleTime    SampleTime_Default      //TD采样时间，单位秒
-
-#define TD_Pitch_r      5000.0f               //Pitch轴TD：速度因子，越大跟踪越快，但微分信号的噪声也会越大
-#define TD_Pitch_h0     6*TD_SampleTime      //Pitch轴TD：滤波因子，越大滤波效果越好，通常取采样时间的整数倍
-#define TD_Yaw_r        2000.0f               //Yaw轴TD：速度因子，越大跟踪越快，但微分信号的噪声也会越大
-#define TD_Yaw_h0       10*TD_SampleTime      //Yaw轴TD：滤波因子，越大滤波效果越好，通常取采样时间的整数倍
+// Patience调的结果，后续可以继续优化
+#define TD_Pitch_r      2000.0f               //Pitch轴TD：速度因子，越大跟踪越快，但微分信号的噪声也会越大
+#define TD_Pitch_h0     16*TD_SampleTime      //Pitch轴TD：滤波因子，越大滤波效果越好，通常取采样时间的整数倍
+#define TD_Yaw_r        5000.0f               //Yaw轴TD：速度因子，越大跟踪越快，但微分信号的噪声也会越大
+#define TD_Yaw_h0       15*TD_SampleTime      //Yaw轴TD：滤波因子，越大滤波效果越好，通常取采样时间的整数倍
 //#endregion
 
 //#region /****PID相关参数***************************************/
@@ -45,12 +45,12 @@ const float      GGM_TaskTime   = (float)GGM_TaskPeriod/(float)configTICK_RATE_H
 #define PID_PitchPos_UpMax       29000.0f         //Pitch位置环PID：Kp项输出最大值
 #define PID_PitchPos_UiMax       29000.0f         //Pitch位置环PID：Ki项输出最大值
 #define PID_PitchPos_UdMax       29000.0f         //Pitch位置环PID：Kd项输出最大值
-#define PID_PitchPos_AddMax      5.0f             //Pitch位置环PID：误差单次累加最大值
+#define PID_PitchPos_AddMax      0.8f             //Pitch位置环PID：误差单次累加最大值
 #define PID_PitchVel_UMax        29000.0f         //Pitch速度环PID：总输出最大值
 #define PID_PitchVel_UpMax       29000.0f         //Pitch速度环PID：Kp项输出最大值
 #define PID_PitchVel_UiMax       29000.0f         //Pitch速度环PID：Ki项输出最大值
 #define PID_PitchVel_UdMax       29000.0f         //Pitch速度环PID：Kd项输出最大值
-#define PID_PitchVel_AddMax      0.0f             //Pitch速度环PID：误差单次累加最大值
+#define PID_PitchVel_AddMax      2.0f             //Pitch速度环PID：误差单次累加最大值
 
 /*云台Yaw轴*/
 #define PID_YawPos_Kp            0.0f             //Yaw位置环PID：比例系数Kp
@@ -63,24 +63,29 @@ const float      GGM_TaskTime   = (float)GGM_TaskPeriod/(float)configTICK_RATE_H
 #define PID_YawPos_UpMax         29000.0f         //Yaw位置环PID：Kp项输出最大值
 #define PID_YawPos_UiMax         29000.0f         //Yaw位置环PID：Ki项输出最大值
 #define PID_YawPos_UdMax         29000.0f         //Yaw位置环PID：Kd项输出最大值
-#define PID_YawPos_AddMax        5.0f             //Yaw位置环PID：误差单次累加最大值
+#define PID_YawPos_AddMax        2.0f             //Yaw位置环PID：误差单次累加最大值
 #define PID_YawVel_UMax          29000.0f         //Yaw速度环PID：总输出最大值
 #define PID_YawVel_UpMax         29000.0f         //Yaw速度环PID：Kp项输出最大值
 #define PID_YawVel_UiMax         29000.0f         //Yaw速度环PID：Ki项输出最大值
 #define PID_YawVel_UdMax         29000.0f         //Yaw速度环PID：Kd项输出最大值
-#define PID_YawVel_AddMax        0.0f             //Yaw速度环PID：误差单次累加最大值
+#define PID_YawVel_AddMax        3.0f             //Yaw速度环PID：误差单次累加最大值
 //#endregion
 
 //#region /****云台角度限制相关****************************************/
-float PitchMax = +40.0f;    //云台Pitch最大值（达妙电机角度），单位度
-float PitchMin = -40.0f;    //云台Pitch最小值（达妙电机角度），单位度
+float Gravity_FeedForward = 10000.0f;    //云台Pitch重力前馈
+//#endregion
+
+
+//#region /****云台角度限制相关****************************************/
+float PitchMax = +25.0f;    //云台Pitch最大值（IMU角度），单位度
+float PitchMin = -27.0f;    //云台Pitch最小值（IMU角度），单位度
 //#endregion
 
 //#region /****灵敏度相关***********************************************/
-float RC_SST_Yaw         =  0.0002f;  //Yaw轴灵敏度（遥控器模式）
-float RC_SST_Pitch       =  0.000f; //Pitch轴灵敏度（遥控器模式）
-float KeyMouse_SST_Yaw   =  0.00f;   //Yaw轴灵敏度（键鼠模式）
-float KeyMouse_SST_Pitch =  0.00f;  //Pitch轴灵敏度（键鼠模式）
+float RC_SST_Yaw         =  0.0003f; //Yaw轴灵敏度（遥控器模式）
+float RC_SST_Pitch       =  0.0001f; //Pitch轴灵敏度（遥控器模式）
+float KeyMouse_SST_Yaw   =  80.0f;   //Yaw轴灵敏度（键鼠模式）
+float KeyMouse_SST_Pitch =  25.0f;   //Pitch轴灵敏度（键鼠模式）
 //#endregion
 
 //#region /****Pitch TD & PID 参数（辅瞄/遥控器）**********************/

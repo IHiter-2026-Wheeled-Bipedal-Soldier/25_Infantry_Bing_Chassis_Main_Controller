@@ -12,6 +12,7 @@
 #include "GlobalDeclare_General.h"
 #include "CAN_Communication.h"
 #include "USART_Communication.h"
+#include "SuperCapacitor.h"
 
 /****************************常量、宏定义定义（不需要修改）****************************/
 const static TickType_t S_SendDataTaskPeriod = 1;     //任务周期，单位ms
@@ -32,6 +33,10 @@ void SendDataTask(void* arg)
       UA2Tx_SendDataToIMU1();     //向云台云控IMU1发送数据
       UA4Tx_SendDataToIMU2();     //向底盘云控IMU2发送数据
       CANTx_SendCurrentToMotor(); //向除了关节电机外的各个电机发送电流
+      // GSTCH_Capacitor.TxPower = 50.0f;
+      SuperCap_SendPower(CAN1, GSTCH_Capacitor);  //向超级电容管理模块发送充电功率
+
+      UA6Tx_SendDataToVision();   //向视觉小电脑发送数据
       
       /***********任务帧率计数器自增************/
       GST_SystemMonitor.SendDataTask_cnt++;

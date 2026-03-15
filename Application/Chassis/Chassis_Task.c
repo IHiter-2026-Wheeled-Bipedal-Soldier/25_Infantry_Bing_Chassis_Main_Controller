@@ -63,8 +63,12 @@ void ChassisControl(void)
     CH_VelKF_Process();          // 卡尔曼滤波器速度读取和预测自适应控制
     CH_HMTorqueComp_Process();   // 轮毂电机补偿力矩控制：左右轮轮毂电机打滑和受阻检测，正常抓地力补偿
     CH_RCInputPre_Process();     // 遥控器指令预处理函数
-    //* 更新底盘模式选择相关变量、读取当前模式
+
+    //判断是底盘StandUp/SlowSitDown还是发射摩擦轮状态切换
+    IS_StandUpSitDown_or_SwitchFrictionWheel();
+
+    // 更新底盘模式选择相关变量、读取当前模式
     CH_ChassisModeUpdate();
     // 检测到安全模式之后会在这里执行清零操作
-    ChassisModeControl_RCControl(GEMCH_Mode);
+    ChassisModeControl_Ctrl(GEMCH_Mode);
 }

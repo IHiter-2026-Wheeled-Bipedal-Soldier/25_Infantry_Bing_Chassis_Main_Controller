@@ -10,6 +10,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "SuperCapacitor.h"
 // #include "Algorithm.h"
 
 /****************************************结构体声明****************************************/
@@ -23,7 +24,7 @@ typedef struct {
 
     float DisDes;          // 底盘位移目标值，向前为正，单位m
     float VelDes;          // 底盘速度目标值，向前为正，单位m/s
-    float YawDeltaDes;     // 底盘Yaw轴偏转角度目标值，逆时针为正，单位度/s
+    float YawDeltaDes;     // 底盘Yaw轴偏转角度目标值，逆时针为正，单位度
     float YawAngleVelDes;  // 偏转角速度目标值，逆时针为正，单位度/s
 
     float Leg1FFForce;  // 左腿前馈力，单位N
@@ -91,19 +92,21 @@ typedef struct
     uint16_t SupplyPelletRx_cnt;    //拨弹电机Rx计数器
     uint16_t PitchMotorRx_cnt;      //Pitch电机Rx计数器
     uint16_t YawMotorRx_cnt;        //Yaw电机Rx计数器
+    uint16_t CapatitorRx_cnt;       //超级电容Rx计数器
 
-    uint16_t USART1Rx_cnt;          //USART1Rx计数器
-    uint16_t USART2Rx_cnt;          //USART2Rx计数器
-    uint16_t USART3Rx_cnt;          //USART3Rx计数器
-    uint16_t UART4Rx_cnt;           //UART4Rx计数器
-    uint16_t UART5Rx_cnt;           //UART5Rx计数器
-    uint16_t USART6Rx_cnt;          //USART6Rx计数器
+    uint16_t USART1Rx_cnt;      //USART1Rx计数器
+    uint16_t USART2Rx_cnt;      //USART2Rx计数器
+    uint16_t USART3Rx_cnt;      //USART3Rx计数器
+    uint16_t UART4Rx_cnt;       //UART4Rx计数器
+    uint16_t UART5Rx_cnt;       //UART5Rx计数器
+    uint16_t USART6Rx_cnt;      //USART6Rx计数器
+    uint16_t USART6Tx_cnt;      //USART6Tx计数器
 
-    uint16_t SendDataTask_cnt;      //SendDataTask计数器
-    uint16_t ChassisTask_cnt;       //ChassisTask计数器
-    uint16_t GimbalTask_cnt;        //GimbalTask计数器
-    uint16_t ShooterTask_cnt;       //ShooterTask计数器
-    uint16_t DebugTask_cnt;         //DebugTask计数器
+    uint16_t SendDataTask_cnt;  //SendDataTask计数器
+    uint16_t ChassisTask_cnt;   //ChassisTask计数器
+    uint16_t GimbalTask_cnt;    //GimbalTask计数器
+    uint16_t ShooterTask_cnt;   //ShooterTask计数器
+    uint16_t DebugTask_cnt;     //DebugTask计数器
 
     /************************帧率************************/
     uint16_t CAN1Rx_fps;            //CAN1Rx帧率
@@ -116,19 +119,20 @@ typedef struct
     uint16_t SupplyPelletRx_fps;    //拨弹电机帧率
     uint16_t PitchMotorRx_fps;      //Pitch电机帧率
     uint16_t YawMotorRx_fps;        //Yaw电机帧率
+    uint16_t CapatitorRx_fps;       //超级电容Rx帧率
 
-    uint16_t USART1Rx_fps;          //USART1Rx帧率
-	uint16_t USART2Rx_fps;          //USART2Rx帧率
-	uint16_t USART3Rx_fps;          //USART3Rx帧率
-	uint16_t UART4Rx_fps;           //UART4Rx帧率
-	uint16_t UART5Rx_fps;           //UART5Rx帧率
-	uint16_t USART6Rx_fps;          //USART6Rx帧率
-    
-    uint16_t SendDataTask_fps;      //SendDataTask帧率
-    uint16_t ChassisTask_fps;       //ChassisTask帧率
-    uint16_t GimbalTask_fps;        //GimbalTask帧率
-    uint16_t ShooterTask_fps;       //ShooterTask帧率
-    uint16_t DebugTask_fps;         //DebugTask帧率
+    uint16_t USART1Rx_fps;      //USART1Rx帧率
+	uint16_t USART2Rx_fps;      //USART2Rx帧率
+	uint16_t USART3Rx_fps;      //USART3Rx帧率
+	uint16_t UART4Rx_fps;       //UART4Rx帧率
+	uint16_t UART5Rx_fps;       //UART5Rx帧率
+	uint16_t USART6Rx_fps;      //USART6Rx帧率
+
+    uint16_t SendDataTask_fps;  //SendDataTask帧率
+    uint16_t ChassisTask_fps;   //ChassisTask帧率
+    uint16_t GimbalTask_fps;    //GimbalTask帧率
+    uint16_t ShooterTask_fps;   //ShooterTask帧率
+    uint16_t DebugTask_fps;     //DebugTask帧率
 }SystemMonitor_StructTypeDef;
 
 /*遥控器接收机 接收DR16 18字节数据的结构体*/
@@ -236,6 +240,21 @@ typedef struct
 }Debug_TargetAutoAlter_StructTypeDef;
 // #pragma endregion
 
+/*拨轮下拨时长模式判断结构体*/
+typedef struct
+{
+    uint16_t RollerUp_Cnt;  //拨轮上拨计数器
+
+    bool RollerUp_Now_status; //拨轮上拨当前状态
+    bool RollerUp_Pre_status; //拨轮上拨过去状态
+
+    bool RollerTriger_Flag;   //拨轮触发标志位（由上拨到回正）
+
+    bool ChassisMode_Flag;  //底盘逻辑切换标志位
+    bool FrictionMode_Flag; //摩擦轮逻辑切换标志位
+
+} CHSH_RollerMode_StructTypeDef;
+
 /********************************不需要修改的变量引出extern声明********************************/
 /*************机器人整体控制结构体*************/
 
@@ -262,6 +281,11 @@ extern Debug_TargetAutoAlter_StructTypeDef GstYaw_DebugDes_AutoAlter;   //Yaw轴
 extern bool GF_USART1_RxDone;
 extern ReceiverData_StructTypeDef GST_Receiver;
 
+/********超级电容相关********/
+extern CapacitorMessage_StructTypeDef GSTCH_Capacitor;
+
+/*用于判断拨轮上拨是底盘模式切换还是摩擦轮状态切换*/
+extern CHSH_RollerMode_StructTypeDef Gst_CHSH_RollerMode_Paras;
 
 /****************************************宏定义引出声明（一般不需要修改）****************************************/
 /************************遥控器相关************************/
@@ -320,46 +344,48 @@ extern ReceiverData_StructTypeDef GST_Receiver;
 #define GravityAcc_ChangSha 9.7915f //长沙地区重力加速度，单位：m/s²
 #define GravityAcc_ShenZhen 9.7803f //深圳地区重力加速度，单位：m/s²
 
+//#region 键鼠相关
 //TODO:键鼠模式增加部分（MS）
 #define true	1
 #define false	0
 #define FALSE false
 #define TRUE true
 
-//键盘键位定义
-extern bool PRESSED_W;
-extern bool PRESSED_S;
-extern bool PRESSED_A;
-extern bool PRESSED_D;
-extern bool PRESSED_SHIFT;
-extern bool PRESSED_CTRL;
-extern bool PRESSED_Q;
-extern bool PRESSED_E;
-extern bool PRESSED_R;
-extern bool PRESSED_F;
-extern bool PRESSED_G;
-extern bool PRESSED_Z;
-extern bool PRESSED_X;
-extern bool PRESSED_C;
-extern bool PRESSED_V;
-extern bool PRESSED_B;
+/*键盘按键状态结构体*/
+typedef struct
+{
+    /*基本按键状态*/
+    bool Key_Now;   //键盘按键当前状态
+    bool Key_Pre;   //键盘按键过去状态
 
-extern bool PRESSED_W_Pre;
-extern bool PRESSED_S_Pre;
-extern bool PRESSED_A_Pre;
-extern bool PRESSED_D_Pre;
-extern bool PRESSED_SHIFT_Pre;
-extern bool PRESSED_CTRL_Pre;
-extern bool PRESSED_Q_Pre;
-extern bool PRESSED_E_Pre;
-extern bool PRESSED_R_Pre;
-extern bool PRESSED_F_Pre;
-extern bool PRESSED_G_Pre;
-extern bool PRESSED_Z_Pre;
-extern bool PRESSED_X_Pre;
-extern bool PRESSED_C_Pre;
-extern bool PRESSED_V_Pre;
-extern bool PRESSED_B_Pre;
+    /*短按长按判断相关*/
+    uint16_t ShortClick_cnt; //短按计数器
+    bool ShortClick_Flag;    //短按触发标志位
+    uint16_t LongClick_cnt;  //长按计数器
+    bool LongClick_Flag;     //长按触发标志位
+
+} Key_Pressed_Paras_StructTypeDef;
+
+
+//键盘键位定义
+//基本按键
+extern Key_Pressed_Paras_StructTypeDef Key_W;
+extern Key_Pressed_Paras_StructTypeDef Key_S;
+extern Key_Pressed_Paras_StructTypeDef Key_A;
+extern Key_Pressed_Paras_StructTypeDef Key_D;
+extern Key_Pressed_Paras_StructTypeDef Key_Q;
+extern Key_Pressed_Paras_StructTypeDef Key_E;
+extern Key_Pressed_Paras_StructTypeDef Key_SHIFT;
+extern Key_Pressed_Paras_StructTypeDef Key_CTRL;
+//图传接收器增加的按键
+extern Key_Pressed_Paras_StructTypeDef Key_R;
+extern Key_Pressed_Paras_StructTypeDef Key_F;
+extern Key_Pressed_Paras_StructTypeDef Key_G;
+extern Key_Pressed_Paras_StructTypeDef Key_Z;
+extern Key_Pressed_Paras_StructTypeDef Key_X;
+extern Key_Pressed_Paras_StructTypeDef Key_C;
+extern Key_Pressed_Paras_StructTypeDef Key_V;
+extern Key_Pressed_Paras_StructTypeDef Key_B;
 
 #define KEY_PRESSED_OFFSET_W        ((uint16_t)0x01<<0)
 #define KEY_PRESSED_OFFSET_S        ((uint16_t)0x01<<1)
@@ -377,8 +403,9 @@ extern bool PRESSED_B_Pre;
 #define KEY_PRESSED_OFFSET_C		((uint16_t)0x01<<13)
 #define KEY_PRESSED_OFFSET_V		((uint16_t)0x01<<14)
 #define KEY_PRESSED_OFFSET_B		((uint16_t)0x01<<15)
+//#endregion
 
-//TODO:裁判系统发送数据相关结构体（MS）
+//#region 裁判系统相关
 //裁判系统数据ID
 typedef enum
 {
@@ -628,58 +655,61 @@ extern ext_rfid_status_t			  G_ST_RFID_Status;//18.机器人 RFID 状态
 extern ext_dart_client_cmd_t          G_ST_Dart_Client_Cmd;//19.飞镖机器人客户端指令数据
 extern ground_robot_position_t        G_ST_Ground_Robot_Position;//20.己方机器人位置坐标
 extern radar_mark_data_t              G_ST_Radar_Mark_Data;//21.对方机器人被易伤标记进度
+//#endregion
 
+//#region 视觉辅瞄相关
 //辅瞄收发数据相关结构体
 typedef struct
 {
 	#pragma pack(1)
     struct{
-        unsigned char m_head[2];
-        unsigned char m_id;
-        unsigned char m_length;
+        unsigned char m_head[2];    // 2
+        unsigned char m_id;         // 1
+        unsigned char m_length;     // 1
         float Pitch;                // 4
         float Yaw;                  // 4
-        float Rol;  
-		float PelletSpeed;
-		float _positionX;
-		float _positionY;
-		float _positionZ;
-		float targetHP;
-		float targetNum;
-		float z_coordinate;
-		float x_coordinate;
-		float angle_toward_world_coordinate;
-		float pmflag;//辅瞄模式选择
-		unsigned char enemy_attack_flag;
-		unsigned char enemy_vul_rig;
-		unsigned char enemy_rec_rig;
-		unsigned char reserved;
-		unsigned short blue_1_robot_HP;
-		unsigned short blue_3_robot_HP;
-		unsigned short blue_4_robot_HP;
-		unsigned short blue_5_robot_HP;
-		float computer_shutdown;
-        float bullet_cnt;
-        unsigned char m_tail[2];
-    }AimAssistDataSendFrame;
+        float Rol;                  // 4
+		float PelletSpeed;          // 4
+		float _positionX;           // 4
+		float _positionY;           // 4
+		float _positionZ;           // 4
+		float targetHP;             // 4
+		float targetNum;            // 4
+		float z_coordinate;         // 4
+		float x_coordinate;         // 4
+		float angle_toward_world_coordinate;    // 4
+		float pmflag;//辅瞄模式选择              // 4
+		unsigned char enemy_attack_flag;        // 1
+		unsigned char enemy_vul_rig;            // 1
+		unsigned char enemy_rec_rig;            // 1
+		unsigned char reserved;                 // 1
+		unsigned short blue_1_robot_HP;         // 2
+		unsigned short blue_3_robot_HP;         // 2
+		unsigned short blue_4_robot_HP;         // 2
+		unsigned short blue_5_robot_HP;         // 2
+		float computer_shutdown;                // 4
+        float bullet_cnt;                       // 4
+        unsigned char m_tail[2];                // 2
+    }AimAssistDataSendFrame; //78字节
     struct{
-        unsigned char m_head[2];
-        unsigned char FindTargetOrNot;
-        unsigned char m_length;
-        float Pitch;                
-        float Yaw;    
-		float ShootOrNot;
-		float Target;
-		float _positionX;
-		float _positionY;
-		float _positionZ;
-		float _attackValue;
-		float _omega;
-        unsigned char m_tail[2];
-    }AimAssistDataReceiveFrame;
+        unsigned char m_head[2];         // 2
+        unsigned char FindTargetOrNot;   // 1
+        unsigned char m_length;          // 1
+        float Pitch;                     // 4
+        float Yaw;                       // 4
+		float ShootOrNot;                // 4
+		float Target;                    // 4
+		float _positionX;                // 4
+		float _positionY;                // 4
+		float _positionZ;                // 4
+		float _attackValue;              // 4
+		float _omega;                    // 4
+        unsigned char m_tail[2];         // 2
+    }AimAssistDataReceiveFrame; //42字节
 #pragma pack()
 } ST_VISION;
 
 extern ST_VISION GST_Vision; //辅瞄收发数据相关结构体
+//#endregion
 
 #endif

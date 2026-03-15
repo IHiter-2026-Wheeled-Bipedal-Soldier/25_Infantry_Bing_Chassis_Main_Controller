@@ -55,6 +55,10 @@ const float JointMotorMAXTorque = Motor_MG8016Ei6MaxTorque;  // 关节电机最�
 #define JM4LinkageCalZP -22.0f  // 右侧phi4，关节电机4（右后）五连杆解算坐标系的零点，单位度
 // #pragma endregion
 
+// #region /****YawFollow模式相关*****************************************/
+#define Yaw_Follow_ZeroPoint -64.42f  // 偏航跟随零点，单位度
+// #endregion
+
 // #pragma region /****低通滤波器滤波系数*********************************/
 // 换车时需修改
 #define LPF_Alpha_HM_AngleVel 0.091f  // 轮毂电机速度低通滤波器系数
@@ -249,8 +253,9 @@ float LegFFForce_OffGround = 35.0f;   // 离地模式的腿部前馈力，单位
 // #pragma endregion
 
 // #pragma region /****底盘模式控制策略相关*******************************/
-uint16_t CHMode_AllMode_PreProcessTime = 4;  // 各个模式的前置处理时间，单位毫秒
-uint16_t CHMode_RC_StandUp_TotalTime = 600;  // 起立模式的总持续时间，单位毫秒
+uint16_t CHMode_AllMode_PreProcessTime = 4;       // 各个模式的前置处理时间，单位毫秒
+uint16_t CHMode_RC_StandUp_TotalTime = 600;       // 遥控器起立模式的总持续时间，单位毫秒
+uint16_t CHMode_KeyMouse_StandUp_TotalTime = 600; // 键鼠起立模式的总持续时间，单位毫秒
 
 // #pragma endregion
 
@@ -273,11 +278,30 @@ float ChMove_YawAngleVelAddStep = 3.0f;  // 转向偏航角速度步进值，单
 // #pragma region /****底盘小陀螺相关*****************************/
 float RCTopMode_EnterVelMinTH = 0.8f;  // 进入小陀螺模式的速度最小阈值（小于这个值允许进入小陀螺），单位m/s
 float RCTopMode_EnterDelayTime = 800.0f;  // 进入小陀螺模式的延时时间，单位ms
-float RCTopMode_ExitAngleVelTH = 180.0f;  // 允许退出小陀螺模式的角速度阈值（需要大于ChMove_TurnYawVel_Normal），单位deg
+float RCTopMode_ExitAngleVelTH = 180.0f;  // 允许退出小陀螺模式的角速度阈值（需要大于ChMove_TurnYawVel_Normal），单位deg/s
 
 float RCTopMode_TopAngleVelDesMax = 14.0f * R2A;  // 小陀螺模式下的最大转向偏航角速度目标值，单位deg/s
-float RCTopMode_TopAngleVelAddStep = 0.4f;  // 小陀螺模式下，角速度步进值，单位deg
-float RCTopMode_TopAngleVelBrakeStep = 1.0f;  // 小陀螺模式下，角速度刹车步进值，单位deg
+float RCTopMode_TopAngleVelAddStep = 0.4f;  // 小陀螺模式下，角速度步进值，单位deg/s
+float RCTopMode_TopAngleVelBrakeStep = 1.0f;  // 小陀螺模式下，角速度刹车步进值，单位deg/s
+
+float KeyMouseTopMode_ExitAngleVelTH = 180.0f;  // 允许退出小陀螺模式的角速度阈值（需要大于ChMove_TurnYawVel_Normal），单位deg/s
+
+float KeyMouseTopMode_TopStill_AngleVelDesMax = 14.0f * R2A;   // 静止小陀螺模式下的最大转向偏航角速度目标值，单位deg/s
+float KeyMouseTopMode_TopStill_AngleVelAddStep = 0.4f;         // 静止小陀螺模式下，角速度步进值，单位deg
+float KeyMouseTopMode_TopStill_AngleVelBrakeStep = 1.0f;       // 静止小陀螺模式下，角速度刹车步进值，单位deg
+float KeyMouseTopMode_TopMoving_AngleVelDesMax = 8.0f * R2A;  // 平移小陀螺模式下的最大转向偏航角速度目标值，单位deg/s
+float KeyMouseTopMode_TopMoving_AngleVelAddStep = 0.4f;        // 平移小陀螺模式下，角速度步进值，单位deg
+float KeyMouseTopMode_TopMoving_AngleVelBrakeStep = 1.0f;      // 平移小陀螺模式下，角速度刹车步进值，单位deg
+
+float ChMove_Top_VelDesMax = 1.0f;   // 速度最大值，单位m/s
+float ChMove_Top_Acc_Moving = 1.0f;  // 运动加速度（理论值，实际上会更小一些）
+float ChMove_Top_Acc_Brake = 10.0f;  // 刹车加速度（理论值，实际上会更小一些）
+float ChMove_Top_VelDesMin = 0.5f;   // 目标速度最小值
+float ChMove_Top_VelMovingChangeRateMin = 0.1f;   // 速度变化最小值
+float ChMove_Top_VelMovingChangeRateMax = 0.45f;  // 速度变化最大值
+float ChMove_Top_VelBrakingChangeRateMax = 1.5f;  // 刹车时速度变化最大值
+float ChMove_Top_BrakeVelLimitTH = 0.45f;          // 刹车时目标速度限制阈值
+
 // #pragma endregion
 
 // #pragma region /****SlowSitDown相关*****************************/
@@ -396,9 +420,8 @@ OffGround_StructTypeDef GstCH_OffGround2 = {GravityAcc_Harbin, SampleTime_Defaul
 // #pragma region
 // /****其他底盘运动控制相关-正式变量*****************************/
 /*底盘状态枚举*/
-
-ChassisMode_EnumTypeDef GEMCH_Mode = CHMode_RC_ManualSafe;  // 底盘模式，默认是手动安全模式
-ChassisMode_EnumTypeDef GEMCH_ModePre = CHMode_RC_ManualSafe;  // 上次的底盘模式，默认是手动安全模式
+ChassisMode_EnumTypeDef GEMCH_Mode    = CHMode_ManualSafe;  // 底盘模式，默认是手动安全模式
+ChassisMode_EnumTypeDef GEMCH_ModePre = CHMode_ManualSafe;  // 上次的底盘模式，默认是手动安全模式
 
 /*关节电机MIT协议控制结构体。INIT顺序为：ID MITKp MITKd：电机ID
  * MIT协议的位置系数  MIT协议的速度系数*/
@@ -411,8 +434,12 @@ JMData_StructTypeDef GSTCH_JM4 = {JM4ID, 0, 0};  // 右后关节电机控制结�
 HMData_StructTypeDef GSTCH_HM1 = {HM_ReductionRatio};  // 左轮毂电机控制结构体
 HMData_StructTypeDef GSTCH_HM2 = {HM_ReductionRatio};  // 右轮毂电机控制结构体
 
+/*底盘Follow模式主要参数结构体*/
+FollowMode_StructTypeDef GstCH_FollowMode_Paras = {Yaw_Follow_ZeroPoint}; // 底盘Follow模式主要参数结构体，INIT顺序为：Yaw_Follow_ZeroPoint：偏航跟随零点，单位度
+
 /*超电数据结构体*/
 CapacitorMessage_StructTypeDef GSTCH_Capacitor;  //超电数据结构体
+
 
 /*底盘数据结构体*/
 CHData_StructTypeDef GSTCH_Data;  // 底盘正式数据结构体，存放和底盘相关的几乎所有数据
@@ -524,8 +551,8 @@ void Chassis_AllParaInit(void)
     /**********************************其他变量**************************************/
     /*底盘状态枚举*/
     //TODO 把这两个放到GSTCH_Data里面
-    GEMCH_Mode    = CHMode_RC_ManualSafe; //底盘模式，默认是手动安全模式
-    GEMCH_ModePre = CHMode_RC_ManualSafe; //上次的底盘模式，默认是手动安全模式
+    GEMCH_Mode    = CHMode_ManualSafe; //底盘模式，默认是手动安全模式
+    GEMCH_ModePre = CHMode_ManualSafe; //上次的底盘模式，默认是手动安全模式
 
     /*关节电机MIT协议控制结构体*/
     _CH_JMDataStructInit(&GSTCH_JM1, JM1ID, 0, 0); //左前关节电机控制结构体

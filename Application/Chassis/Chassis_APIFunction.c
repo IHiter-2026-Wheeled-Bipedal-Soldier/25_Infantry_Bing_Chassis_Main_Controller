@@ -27,11 +27,11 @@
 
 #include "TIM_Config.h"
 
-float PID_RollComp_Kp_tmp = 1500.0f;  // Roll轴补偿PID：比例系数Kp
+float PID_RollComp_Kp_tmp = 1000.0f;  // Roll轴补偿PID：比例系数Kp
 float PID_RollComp_Ki_tmp = 0.0f;    // Roll轴补偿PID：积分系数Ki，取0表示不使用积分
-float PID_RollComp_Kd_tmp = 35000.0f;              // Roll轴补偿PID：微分系数Kd
+float PID_RollComp_Kd_tmp = 30000.0f;              // Roll轴补偿PID：微分系数Kd
 
-float K_Trac_Norm_tmp = 3.0f;
+float K_Trac_Norm_tmp = 0.0f;
 // 底盘的数据修改、处理、更新相关函数：允许更改正式结构体的值
 // TODO 可能需要改一下位置
 //! 由于需要用到部分前面用到的函数修改和处理写在后面了（然后我改了一下函数名称）
@@ -538,7 +538,8 @@ void CH_HMTorqueComp_Process(void) {
  * @retval 无
  */
 //* 底盘LQR计算处理函数
-void CH_LQRCal_Process(void) {
+void CH_LQRCal_Process(void)
+{
     /*更新LQR计算的状态向量*/
     LQR_xVector_DataUpdate(&GstCH_LQRCal,
                             GSTCH_Data.DisDes            - GSTCH_Data.DisFB,                                                               //位移误差
@@ -705,7 +706,8 @@ void _CH_GSTCH_Data_Reset(void)
     GSTCH_Data.Leg2TorqueDes = 0.0f; //VMC：右腿力矩目标值清零
 
     /*底盘运动状态重置为制动状态*/
-    GSTCH_Data.EM_MoveDirection = MoveDirection_Brake;
+    GSTCH_Data.EM_MoveXDirection = MoveXDirection_Brake;
+    GSTCH_Data.EM_MoveYDirection = MoveYDirection_Brake;
 }
 
 /**
@@ -829,7 +831,7 @@ void Chassis_RobotCtrlDataReset(void)
 uint8_t IsEnterManualCalibration(void)
 {
     /*如果不处于RC手动安全模式，则不进入标定模式*/
-    if(GEMCH_Mode != CHMode_RC_ManualSafe)
+    if(GEMCH_Mode != CHMode_ManualSafe)
     {return 0;}
 
     /*如果做出内八手势，则进入标定状态，否则不进入*/
@@ -871,51 +873,109 @@ void CH_MotionUpdateAndProcess(RobotControl_StructTypeDef RMCtrl)
 /**************************************底盘控制策略里面使用的相关函数***************************************************************************/
 /*底盘的移动相关函数*/
 /**
-  * @brief  底盘运动状态选择函数
+  * @brief  遥控器模式下，底盘运动状态选择函数
   * @note   根据左摇杆的前后移动，选择底盘的运动状态
   *         前进、后退、制动三种状态
   * @param  无
   * @retval Chassis_MoveDirection_EnumTypeDef类型，底盘运动状态枚举变量
 */
-Chassis_MoveDirection_EnumTypeDef _CH_Move_DirectionChoose(void)
+Chassis_MoveXDirection_EnumTypeDef _CH_RC_Move_DirectionChoose(void)
 {
-    Chassis_MoveDirection_EnumTypeDef MoveDirection;
+    Chassis_MoveXDirection_EnumTypeDef MoveDirection;
 
     /*如果左摇杆Up，则前进*/
     if(IsLeftJoyStickBeyondDeadZoneUp() == true)
     {
-        MoveDirection = MoveDirection_Forward;
+        MoveDirection = MoveXDirection_Forward;
     }
     /*如果左摇杆Down，则后退*/
     else if(IsLeftJoyStickBeyondDeadZoneDown() == true)
     {
-        MoveDirection = MoveDirection_Backward;
+        MoveDirection = MoveXDirection_Backward;
     }
     /*否则都是Brake*/
     else
     {
-        MoveDirection = MoveDirection_Brake;
+        MoveDirection = MoveXDirection_Brake;
     }
 
     return MoveDirection;
 }
+/**
+  * @brief  键鼠模式下，底盘运动状态选择函数
+  * @note   根据键盘的'W'、'S'输入，选择底盘的运动状态
+  *         前进、后退、制动三种状态
+  * @param  无
+  * @retval Chassis_MoveXDirection_EnumTypeDef类型，底盘运动状态枚举变量
+*/
+Chassis_MoveXDirection_EnumTypeDef _CH_KeyMouse_Move_XDirectionChoose(void)
+{
+    Chassis_MoveXDirection_EnumTypeDef MoveXDirection;
+
+    /*如果按下W键，则前进*/
+    if(Key_W.Key_Now == true)
+    {
+        MoveXDirection = MoveXDirection_Forward;
+    }
+    /*如果按下S键，则后退*/
+    else if(Key_S.Key_Now == true)
+    {
+        MoveXDirection = MoveXDirection_Backward;
+    }
+    /*否则都是Brake*/
+    else
+    {
+        MoveXDirection = MoveXDirection_Brake;
+    }
+
+    return MoveXDirection;
+}
+/**
+  * @brief  键鼠模式下，底盘运动状态选择函数
+  * @note   根据键盘的'A'、'D'输入，选择底盘的运动状态
+  *         左转、右转、制动三种状态
+  * @param  无
+  * @retval Chassis_MoveYDirection_EnumTypeDef类型，底盘运动状态枚举变量
+*/
+Chassis_MoveYDirection_EnumTypeDef _CH_KeyMouse_Move_YDirectionChoose(void)
+{
+    Chassis_MoveYDirection_EnumTypeDef MoveYDirection;
+
+    /*如果按下A键，则左移*/
+    if(Key_A.Key_Now == true)
+    {
+        MoveYDirection = MoveYDirection_Left;
+    }
+    /*如果按下D键，则右移*/
+    else if(Key_D.Key_Now == true)
+    {
+        MoveYDirection = MoveYDirection_Right;
+    }
+    /*否则都是Brake*/
+    else
+    {
+        MoveYDirection = MoveYDirection_Brake;
+    }
+
+    return MoveYDirection;
+}
 
 /**
-  * @brief  底盘速度目标值获取函数
+  * @brief  遥控器模式下底盘速度目标值获取函数
   * @note   根据当前底盘运动状态，计算并获取底盘速度目标值
   * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体指针
   * @retval float类型，底盘速度目标值
 */
-float _CH_Move_GetDesVel(CHData_StructTypeDef* CHData)
+float _CH_RC_Move_GetDesVel(CHData_StructTypeDef* CHData)
 {
-    Chassis_MoveDirection_EnumTypeDef MoveDirection = CHData->EM_MoveDirection; //获取当前底盘运动状态
+    Chassis_MoveXDirection_EnumTypeDef MoveDirection = CHData->EM_MoveXDirection; //获取当前底盘前后运动状态
     bool F_DirectionInvert = CHData->F_DirectionInvert;    //获取底盘运动方向反转标志位
 
-    float VelFBNow   = CHData->VelFB;     //获取当前底盘速度反馈值
+    float VelFBNow   = CHData->VelFB;    //获取当前底盘速度反馈值
     float VelDesPre  = CHData->VelDes;   //获取上次底盘速度目标值
-    float VelDesNext = 0.0f;            //定义本次底盘速度目标值变量
+    float VelDesNext = 0.0f;             //定义本次底盘速度目标值变量
 
-    if((MoveDirection == MoveDirection_Forward && F_DirectionInvert == false) || (MoveDirection == MoveDirection_Backward && F_DirectionInvert == true))
+    if((MoveDirection == MoveXDirection_Forward && F_DirectionInvert == false) || (MoveDirection == MoveXDirection_Backward && F_DirectionInvert == true))
     {
         //* 检测到处于较快的后退状态，先以最大变化率刹车在向前移动
         if(VelFBNow <= -ChMove_StillVelTH)
@@ -932,7 +992,7 @@ float _CH_Move_GetDesVel(CHData_StructTypeDef* CHData)
         }
     }
 
-    else if((MoveDirection == MoveDirection_Backward && F_DirectionInvert == false) || (MoveDirection == MoveDirection_Forward && F_DirectionInvert == true))
+    else if((MoveDirection == MoveXDirection_Backward && F_DirectionInvert == false) || (MoveDirection == MoveXDirection_Forward && F_DirectionInvert == true))
     {
         if(VelFBNow >= ChMove_StillVelTH)
         {
@@ -946,7 +1006,7 @@ float _CH_Move_GetDesVel(CHData_StructTypeDef* CHData)
         }
     }
 
-    else if (MoveDirection == MoveDirection_Brake)
+    else if (MoveDirection == MoveXDirection_Brake)
     {
         // 用更大的加速度来刹车
         VelDesNext = StepChangeValue(VelDesPre, 0.0f, ChMove_Acc_Brake * GCH_TaskTime);
@@ -961,6 +1021,231 @@ float _CH_Move_GetDesVel(CHData_StructTypeDef* CHData)
             VelDesNext = Limit(VelDesNext, -0.8f, 0.0f); //限制目标速度最小最大值
         }
     }
+    return VelDesNext;
+}
+
+/**
+  * @brief  键鼠模式下底盘速度目标值获取函数
+  * @note   根据当前底盘运动状态，计算并获取底盘速度目标值
+  * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体指针
+  * @retval float类型，底盘速度目标值
+*/
+float _CH_KeyMouse_Move_GetDesVel(CHData_StructTypeDef* CHData)
+{
+    Chassis_MoveXDirection_EnumTypeDef MoveXDirection = CHData->EM_MoveXDirection; //获取当前底盘前后运动状态
+    Chassis_MoveYDirection_EnumTypeDef MoveYDirection = CHData->EM_MoveYDirection; //获取当前底盘左右运动状态
+    bool F_DirectionInvert = CHData->F_DirectionInvert;    //获取底盘运动方向反转标志位
+
+    float YawOffset = CHData->YawAngleDeltaDes_Offset;  //定义本次底盘偏航角目标值偏移量，单位度
+    float RelativeYawAngle = GstCH_FollowMode_Paras.RelativeYawAngle; //获取底盘跟随模式参数中的相对偏航角，单位度
+    float VelFBNow  = CHData->VelFB;                    //获取当前底盘速度反馈值
+    float VelXFB    = VelFBNow*MyCos(RelativeYawAngle); //前后移动方向机体速度分量
+    float VelYFB    = VelFBNow*MySin(RelativeYawAngle); //左右移动方向机体速度分量
+    float VelDesPre = CHData->VelDes;                   //获取上次底盘速度目标值
+    float VelDesNext   = 0.0f;                          //定义本次底盘运动速度目标值变量
+    float VelDesNext_x = 0.0f;                          //定义本次底盘前后运动速度目标值变量
+    float VelDesNext_y = 0.0f;                          //定义本次底盘左右运动速度目标值变量
+
+    /*前后运动速度目标赋值*/
+    if((MoveXDirection == MoveXDirection_Forward && F_DirectionInvert == false) || (MoveXDirection == MoveXDirection_Backward && F_DirectionInvert == true))
+    {
+        //* 检测到处于较快的后退状态，先以最大变化率刹车在向前移动
+        if(VelXFB <= -ChMove_StillVelTH)
+        {
+            VelDesNext_x = VelXFB + ChMove_VelBrakingChangeRateMax;
+        }
+        else
+        {
+            //* 按照设定的加速度逐步向最大速度移动（摇杆控制的是方向或者以最大速度移动的时间）
+            VelDesNext_x = StepChangeValue(VelDesPre, ChMove_VelDesMax, ChMove_Acc_Moving * GCH_TaskTime);                         //* 逐步改变目标速度
+            VelDesNext_x = Limit(VelDesNext_x, VelXFB + ChMove_VelMovingChangeRateMin, VelXFB + ChMove_VelMovingChangeRateMax);  //* 限制目标速度变化范围（让实际速度能够更好跟上目标速度的）
+            VelDesNext_x = Limit(VelDesNext_x, ChMove_VelDesMin, ChMove_VelDesMax);                                                  //* 限制目标速度最小最大值
+        }
+        YawOffset = 0.0f;
+    }
+    else if((MoveXDirection == MoveXDirection_Backward && F_DirectionInvert == false) || (MoveXDirection == MoveXDirection_Forward && F_DirectionInvert == true))
+    {
+        if(VelXFB >= ChMove_StillVelTH)
+        {
+            VelDesNext_x = VelXFB - ChMove_VelBrakingChangeRateMax;
+        }
+        else
+        {
+            VelDesNext_x = StepChangeValue(VelDesPre, -ChMove_VelDesMax, ChMove_Acc_Moving * GCH_TaskTime);                         //逐步改变目标速度
+            VelDesNext_x = Limit(VelDesNext_x, VelXFB - ChMove_VelMovingChangeRateMax, VelXFB - ChMove_VelMovingChangeRateMin);     //限制目标速度变化范围
+            VelDesNext_x = Limit(VelDesNext_x, -ChMove_VelDesMax, -ChMove_VelDesMin);                                               //限制目标速度最小最大值
+        }
+        YawOffset = 0.0f;
+    }
+    else if(MoveXDirection == MoveXDirection_Brake)
+    {
+        // 用更大的加速度来刹车
+        VelDesNext_x = StepChangeValue(VelDesPre, 0.0f, ChMove_Acc_Brake * GCH_TaskTime);
+        if(VelXFB > ChMove_BrakeVelLimitTH)//如果当前速度是正的
+        {
+            VelDesNext_x = Limit(VelDesNext_x, VelXFB - ChMove_VelBrakingChangeRateMax, VelXFB);   //限制目标速度变化范围
+            VelDesNext_x = Limit(VelDesNext_x, 0.0f, 0.8f);  //限制目标速度最小最大值
+        }
+        else if(VelXFB < -ChMove_BrakeVelLimitTH)//如果当前速度是负的
+        {
+            VelDesNext_x = Limit(VelDesNext_x, VelXFB, VelXFB + ChMove_VelBrakingChangeRateMax);   //限制目标速度变化范围
+            VelDesNext_x = Limit(VelDesNext_x, -0.8f, 0.0f); //限制目标速度最小最大值
+        }
+        YawOffset = 0.0f;
+    }
+
+
+    /*左右运动速度目标赋值*/
+    if((MoveYDirection == MoveYDirection_Left && F_DirectionInvert == false) || (MoveYDirection == MoveYDirection_Right && F_DirectionInvert == true))
+    {
+        //* 检测到处于较快的后退状态，先以最大变化率刹车在向前移动
+        if(VelYFB <= -ChMove_StillVelTH)
+        {
+            VelDesNext_y = VelYFB + ChMove_VelBrakingChangeRateMax;
+            // YawOffset = -90.0f;
+        }
+        else
+        {
+            //* 按照设定的加速度逐步向最大速度移动
+            VelDesNext_y = StepChangeValue(VelDesPre, ChMove_VelDesMax, ChMove_Acc_Moving * GCH_TaskTime);                           //* 逐步改变目标速度
+            VelDesNext_y = Limit(VelDesNext_y, VelYFB + ChMove_VelMovingChangeRateMin, VelYFB + ChMove_VelMovingChangeRateMax);  //* 限制目标速度变化范围（让实际速度能够更好跟上目标速度的）
+            VelDesNext_y = Limit(VelDesNext_y, ChMove_VelDesMin, ChMove_VelDesMax);                                                  //* 限制目标速度最小最大值
+            // YawOffset = 90.0f;
+        }
+    }
+    else if((MoveYDirection == MoveYDirection_Right && F_DirectionInvert == false) || (MoveYDirection == MoveYDirection_Left && F_DirectionInvert == true))
+    {
+        if(VelYFB >= ChMove_StillVelTH)
+        {
+            VelDesNext_y = VelYFB - ChMove_VelBrakingChangeRateMax;
+            // YawOffset = 90.0f;
+        }
+        else
+        {
+            VelDesNext_y = StepChangeValue(VelDesPre, -ChMove_VelDesMax, ChMove_Acc_Moving * GCH_TaskTime);                           //逐步改变目标速度
+            VelDesNext_y = Limit(VelDesNext_y, VelYFB - ChMove_VelMovingChangeRateMax, VelYFB - ChMove_VelMovingChangeRateMin);   //限制目标速度变化范围
+            VelDesNext_y = Limit(VelDesNext_y, -ChMove_VelDesMax, -ChMove_VelDesMin);                                                 //限制目标速度最小最大值
+            // YawOffset = -90.0f;
+        }
+    }
+    else if(MoveYDirection == MoveYDirection_Brake)
+    {
+        // 用更大的加速度来刹车
+        VelDesNext_y = StepChangeValue(VelDesPre, 0.0f, ChMove_Acc_Brake * GCH_TaskTime);
+        if(VelYFB > ChMove_BrakeVelLimitTH)//如果当前速度是正的
+        {
+            VelDesNext_y = Limit(VelDesNext_y, VelYFB - ChMove_VelBrakingChangeRateMax, VelYFB);   //限制目标速度变化范围
+            VelDesNext_y = Limit(VelDesNext_y, 0.0f, 0.8f);                                            //限制目标速度最小最大值
+            // YawOffset = 90.0f;
+        }
+        else if(VelYFB < -ChMove_BrakeVelLimitTH)//如果当前速度是负的
+        {
+            VelDesNext_y = Limit(VelDesNext_y, VelYFB, VelYFB + ChMove_VelBrakingChangeRateMax);   //限制目标速度变化范围
+            VelDesNext_y = Limit(VelDesNext_y, -0.8f, 0.0f); //限制目标速度最小最大值
+            // YawOffset = -90.0f;
+        }
+
+        if(VelYFB >= -ChMove_StillVelTH && VelYFB <= ChMove_StillVelTH)
+        {
+            // YawOffset = 0.0f;
+        }
+    }
+
+
+    /*xy方向协调控制*/
+    if(MoveXDirection != MoveXDirection_Forward && MoveXDirection != MoveXDirection_Backward && MoveYDirection != MoveYDirection_Brake) //如果不是纯前后运动状态
+    {
+        YawOffset = MyAtan(VelDesNext_y/VelDesNext_x); //计算当前速度目标值的运动方向角度（相对于机器人前进方向），单位度
+    }
+    else
+    {
+        YawOffset = 0.0f;
+    }
+
+    CHData->YawAngleDeltaDes_Offset = YawOffset; //把计算得到的偏航角目标值偏移量赋值到底盘数据结构体中
+
+    VelDesNext = VelDesNext_x*MyCos(RelativeYawAngle) + VelDesNext_y*MySin(RelativeYawAngle); //合速度合成
+    VelDesNext = Limit(VelDesNext, -ChMove_VelDesMax, ChMove_VelDesMax); //最终的速度目标值限制在最大最小值范围内
+    return VelDesNext;
+}
+
+/**
+  * @brief  小陀螺模式下，底盘速度目标值获取函数
+  * @note   根据当前底盘运动状态，计算并获取底盘速度目标值
+  * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体指针
+  * @retval float类型，底盘速度目标值
+*/
+float _CH_Move_Top_GetDesVel(CHData_StructTypeDef* CHData)
+{
+    Chassis_MoveXDirection_EnumTypeDef MoveXDirection = CHData->EM_MoveXDirection; //获取当前底盘运动状态
+    bool F_DirectionInvert = CHData->F_DirectionInvert;    //获取底盘运动方向反转标志位
+
+    float VelFBNow   = CHData->VelFB;    //获取当前底盘速度反馈值
+    float VelDesPre  = CHData->VelDes;   //获取上次底盘速度目标值
+    float VelDesNext = 0.0f;             //定义本次底盘速度目标值变量
+    float RelativeAngle_OffSet = 0.0f;  //根据'A''D'输入对应改变的底盘相对航向角（BenjaminPosition），单位度
+
+    if((MoveXDirection == MoveXDirection_Forward && F_DirectionInvert == false) || (MoveXDirection == MoveXDirection_Backward && F_DirectionInvert == true))
+    {
+        //* 检测到处于较快的后退状态，先以最大变化率刹车在向前移动
+        if(VelFBNow <= -ChMove_StillVelTH)
+        {
+            VelDesNext = VelFBNow + ChMove_VelBrakingChangeRateMax;
+        }
+
+        else
+        {
+            //* 按照设定的加速度逐步向最大速度移动（摇杆控制的是方向或者以最大速度移动的时间） 
+            VelDesNext = StepChangeValue(VelDesPre, ChMove_Top_VelDesMax, ChMove_Top_Acc_Moving * GCH_TaskTime);                         //* 逐步改变目标速度
+            VelDesNext = Limit(VelDesNext, VelFBNow + ChMove_Top_VelMovingChangeRateMin, VelFBNow + ChMove_Top_VelMovingChangeRateMax);  //* 限制目标速度变化范围（让实际速度能够更好跟上目标速度的）
+            VelDesNext = Limit(VelDesNext, ChMove_Top_VelDesMin, ChMove_Top_VelDesMax);                                                  //* 限制目标速度最小最大值
+        }
+    }
+    else if((MoveXDirection == MoveXDirection_Backward && F_DirectionInvert == false) || (MoveXDirection == MoveXDirection_Forward && F_DirectionInvert == true))
+    {
+        if(VelFBNow >= ChMove_StillVelTH)
+        {
+            VelDesNext = VelFBNow - ChMove_VelBrakingChangeRateMax;
+        }
+        else
+        {
+            VelDesNext = StepChangeValue(VelDesPre, -ChMove_Top_VelDesMax, ChMove_Top_Acc_Moving * GCH_TaskTime);                         //逐步改变目标速度
+            VelDesNext = Limit(VelDesNext, VelFBNow - ChMove_Top_VelMovingChangeRateMax, VelFBNow - ChMove_Top_VelMovingChangeRateMin);   //限制目标速度变化范围
+            VelDesNext = Limit(VelDesNext, -ChMove_Top_VelDesMax, -ChMove_Top_VelDesMin);                                                 //限制目标速度最小最大值
+        }
+    }
+    else if (MoveXDirection == MoveXDirection_Brake)
+    {
+        // 用更大的加速度来刹车
+        VelDesNext = StepChangeValue(VelDesPre, 0.0f, ChMove_Top_Acc_Brake * GCH_TaskTime);
+        if(VelFBNow > ChMove_BrakeVelLimitTH)//如果当前速度是正的
+        {
+            VelDesNext = Limit(VelDesNext, VelFBNow - ChMove_Top_VelBrakingChangeRateMax, VelFBNow);   //限制目标速度变化范围
+            VelDesNext = Limit(VelDesNext, 0.0f, 0.8f);                                            //限制目标速度最小最大值
+        }
+        else if(VelFBNow < -ChMove_BrakeVelLimitTH)//如果当前速度是负的
+        {
+            VelDesNext = Limit(VelDesNext, VelFBNow, VelFBNow + ChMove_Top_VelBrakingChangeRateMax);   //限制目标速度变化范围
+            VelDesNext = Limit(VelDesNext, -0.8f, 0.0f); //限制目标速度最小最大值
+        }
+    }
+
+    // /*yaw偏移角度赋值*/
+    // if(Key_A.Key_Now == true)
+    // {
+    //     RelativeAngle_OffSet = 90.0f;
+    // }
+    // else if(Key_D.Key_Now == true)
+    // {
+    //     RelativeAngle_OffSet = -90.0f;
+    // }
+    // else
+    // {
+    //     RelativeAngle_OffSet = 0.0f;
+    // }
+
+    VelDesNext = VelDesNext * MySin(GstCH_FollowMode_Paras.RelativeYawAngle + RelativeAngle_OffSet); //根据偏航角和偏移角调整速度目标值的方向
+
     return VelDesNext;
 }
 
@@ -1005,6 +1290,52 @@ float _CH_Move_GetTurnVel(CHData_StructTypeDef* CHData)
 }
 
 /**
+  * @brief  键鼠模式下，底盘转向偏航角度获取函数
+  * @note   
+  * @param  无
+  * @retval float类型，底盘偏航角度目标值
+*/
+float _CH_Move_KeyMouse_GetTurnAng(CHData_StructTypeDef* CHData)
+{
+    static uint16_t KeyTurnCount = 0; //转向计数器
+    static const uint16_t TurningStage_Duration = 500; //转向阶段持续时间，单位ms
+    static const float TurningFinish_TH = 10.0f; //转向完成的偏航角阈值，单位度
+    static bool Turning_Flag = 0;     //转向标志位
+    static float YawAngle_Primary;    //转向初始偏航角
+    float YawAngleDes_Next = 0.0f;    //定义本次偏航角目标值变量
+
+    /*180度转向控制*/
+    if(Key_E.Key_Now == true && Turning_Flag == 0)
+    {
+        Turning_Flag = 1; //设置转向标志位
+        YawAngle_Primary = GstCH_FollowMode_Paras.RelativeYawAngle; //记录转向初始偏航角
+    }
+    if(Turning_Flag == 1)
+    {
+        KeyTurnCount++; //转向计数器增加
+
+        if(KeyTurnCount >= TurningStage_Duration) //一段时间后
+        {
+            if(MyAbsf(GstCH_FollowMode_Paras.RelativeYawAngle) < TurningFinish_TH)
+            {Turning_Flag = 0;}
+            else
+            {YawAngleDes_Next = YawAngle_Primary;}
+        }
+        else
+        {YawAngleDes_Next = YawAngle_Primary;}
+    }
+    else if(Turning_Flag == 0)
+    {
+        KeyTurnCount = 0; //转向计数器清零
+        YawAngleDes_Next = GstCH_FollowMode_Paras.RelativeYawAngle; //转向标志位清零，偏航角目标值设为相对偏航角
+    }
+
+    YawAngleDes_Next += GSTCH_Data.YawAngleDeltaDes_Offset; //加上偏航角增量的偏移值，这个值在FollowMode下会根据键盘方向键输入进行调整
+
+    return YawAngleDes_Next;
+}
+
+/**
   * @brief  底盘移动处理函数
   * @note   底盘移动的主要处理函数
   *         包括底盘运动状态选择、底盘速度目标值获取、底盘位移目标值处理等
@@ -1016,12 +1347,61 @@ float _CH_Move_GetTurnVel(CHData_StructTypeDef* CHData)
 void ChModeControl_FreeMode_RCControl_MoveHandler(CHData_StructTypeDef* CHData, RobotControl_StructTypeDef *RMCtrl)
 {
     /*选择底盘运动状态、获取底盘速度目标值*/
-    CHData->EM_MoveDirection = _CH_Move_DirectionChoose();
+    CHData->EM_MoveXDirection = _CH_RC_Move_DirectionChoose();
     // XXX 这个目标值变化设计的很好
-    RMCtrl->STCH_Default.VelDes = _CH_Move_GetDesVel(CHData);
+    RMCtrl->STCH_Default.VelDes = _CH_RC_Move_GetDesVel(CHData);
 
     /*转向的偏航角速度获取*/
     RMCtrl->STCH_Default.YawAngleVelDes = _CH_Move_GetTurnVel(CHData);
+
+    /*底盘位移目标值处理*/
+    _CH_Move_DisHandler(CHData, RMCtrl);
+}
+
+/**
+  * @brief  遥控器模式下，底盘跟随模式移动处理函数
+  * @note   底盘移动的主要处理函数
+  *         包括底盘运动状态选择、底盘速度目标值获取、底盘位移目标值处理等
+  *         在允许运动的底盘策略Stratgy中调用
+  * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体指针
+  * @param  RMCtrl：RobotControl_StructTypeDef类型，机器人控制结构体指针
+  * @retval 无
+*/
+void ChModeControl_FollowMode_RCControl_MoveHandler(CHData_StructTypeDef* CHData, RobotControl_StructTypeDef *RMCtrl)
+{
+    /*选择底盘运动状态、获取底盘速度目标值*/
+    CHData->EM_MoveXDirection = _CH_RC_Move_DirectionChoose();
+    // XXX 这个目标值变化设计的很好
+    RMCtrl->STCH_Default.VelDes = _CH_RC_Move_GetDesVel(CHData);
+
+    /*转向的偏航角度增量获取*/
+    RMCtrl->STCH_Default.YawDeltaDes = GstCH_FollowMode_Paras.RelativeYawAngle;
+    RMCtrl->STCH_Default.YawAngleVelDes = 0.0f; //Yaw角速度目标值设为0以增加阻尼防止超调，但是LQR调好之后就无所谓了
+
+    /*底盘位移目标值处理*/
+    _CH_Move_DisHandler(CHData, RMCtrl);
+}
+
+/**
+  * @brief  键鼠模式下，底盘跟随模式移动处理函数
+  * @note   底盘移动的主要处理函数
+  *         包括底盘运动状态选择、底盘速度目标值获取、底盘位移目标值处理等
+  *         在允许运动的底盘策略Stratgy中调用
+  * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体指针
+  * @param  RMCtrl：RobotControl_StructTypeDef类型，机器人控制结构体指针
+  * @retval 无
+*/
+void ChModeControl_FollowMode_KeyMouseControl_MoveHandler(CHData_StructTypeDef* CHData, RobotControl_StructTypeDef *RMCtrl)
+{
+    /*选择底盘运动状态、获取底盘速度目标值*/
+    CHData->EM_MoveXDirection = _CH_KeyMouse_Move_XDirectionChoose(); //前后运动方向获取
+    CHData->EM_MoveYDirection = _CH_KeyMouse_Move_YDirectionChoose(); //左右运动方向获取
+    // XXX 这个目标值变化设计的很好
+    RMCtrl->STCH_Default.VelDes = _CH_KeyMouse_Move_GetDesVel(CHData);
+
+    /*转向的偏航角度增量获取*/
+    RMCtrl->STCH_Default.YawDeltaDes = _CH_Move_KeyMouse_GetTurnAng(CHData);
+    RMCtrl->STCH_Default.YawAngleVelDes = 0.0f; //Yaw角速度目标值设为0以增加阻尼防止超调，但是LQR调好之后就无所谓了（idea：也可能用鼠标速度输入设定yaw目标值，但感觉需要调参）
 
     /*底盘位移目标值处理*/
     _CH_Move_DisHandler(CHData, RMCtrl);
@@ -1079,6 +1459,34 @@ bool ChModeControl_FreeMode_RCControl_IsEnterTopMode(CHData_StructTypeDef CHData
 }
 
 /**
+  * @brief  KeyMouse控制Follow模式下，判断陀螺模式进入函数
+  * @note   在Follow模式下，根据摇杆输入判断是否需要进入陀螺模式
+  * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体变量
+  * @retval true：进入陀螺模式
+  *         false：不进入陀螺模式
+*/
+bool ChModeControl_FollowMode_KeyMouseControl_IsEnterTopMode(CHData_StructTypeDef CHData)
+{
+    /*提取需要用到的变量*/
+    float YawAngleVelFBNow = CHData.YawAngleVelFB;
+
+    /*************************进入陀螺模式与否的判断****************************/
+    /*Yaw角速度较大，认为处于小陀螺模式，不退出*/
+    if(MyAbsf(YawAngleVelFBNow) >= KeyMouseTopMode_ExitAngleVelTH)
+    {
+        return true;
+    }
+
+    /*若Shift按下，进入陀螺模式*/
+    if(Key_SHIFT.Key_Now == true && Key_CTRL.Key_Now == false && Key_V.Key_Now == false)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+/**
   * @brief  RC控制Free模式下，小陀螺陀螺模式处理函数
   * @note   在Free模式下，陀螺模式的主要处理函数
   *         包括关闭位移控制和速度控制、获取Yaw角速度目标值等
@@ -1107,6 +1515,49 @@ void ChModeControl_FreeMode_RCControl_TopHandler(CHData_StructTypeDef* CHData, R
     {TopAngleVelDes_Next = StepChangeValue(TopAngleVelDes_Pre , 0.0f , RCTopMode_TopAngleVelBrakeStep);}
 
     /*赋值给实际控制的结构体成员*/
+    RMCtrl->STCH_Default.YawAngleVelDes = TopAngleVelDes_Next;
+}
+
+/**
+  * @brief  KeyMouse控制Follow模式下，小陀螺陀螺模式处理函数
+  * @note   在Follow模式下，陀螺模式的主要处理函数
+  *         包括关闭位移控制和速度控制、获取Yaw角速度目标值等
+  * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体指针
+  * @param  RMCtrl：RobotControl_StructTypeDef类型，机器人控制结构体指针
+  * @retval 无
+*/
+void ChModeControl_FollowMode_KeyMouseControl_TopHandler(CHData_StructTypeDef* CHData, RobotControl_StructTypeDef *RMCtrl)
+{
+    /*选择底盘运动状态、获取底盘速度目标值*/
+    // CHData->EM_MoveXDirection = _CH_KeyMouse_Move_DirectionChoose();
+
+    // /*关闭位移控制和速度控制*/
+    RMCtrl->STCH_Default.DisDes = GSTCH_Data.DisFB; //位移目标值设为当前位移反馈值
+    RMCtrl->STCH_Default.VelDes = _CH_Move_Top_GetDesVel(CHData);
+
+    /*************获取下一个偏航角速度目标值*************/
+    float TopAngleVelDes_Pre = RMCtrl->STCH_Default.YawAngleVelDes; //获取上次陀螺模式偏航角速度目标值
+    float TopAngleVelDes_Next = 0;
+
+    /*目前始终向一个方向旋转*/
+    if(Key_SHIFT.Key_Now == true && Key_CTRL.Key_Now == false && Key_V.Key_Now == false)
+    {
+        if(GSTCH_Data.EM_MoveXDirection != MoveXDirection_Brake) //平移小陀螺
+        {
+            TopAngleVelDes_Next = StepChangeValue(GST_RMCtrl.STCH_Default.YawAngleVelDes , KeyMouseTopMode_TopMoving_AngleVelDesMax , KeyMouseTopMode_TopMoving_AngleVelAddStep);
+        }
+        else //原地静止小陀螺
+        {
+            TopAngleVelDes_Next = StepChangeValue(GST_RMCtrl.STCH_Default.YawAngleVelDes , KeyMouseTopMode_TopStill_AngleVelDesMax , KeyMouseTopMode_TopStill_AngleVelAddStep);
+        }
+    }
+
+    /*否则缓慢退出小陀螺*/
+    else
+    {TopAngleVelDes_Next = StepChangeValue(TopAngleVelDes_Pre , 0.0f , RCTopMode_TopAngleVelBrakeStep);}
+
+    /*赋值给实际控制的结构体成员*/
+    RMCtrl->STCH_Default.YawDeltaDes = 0.0f; //Follow小陀螺模式下不进行偏航角增量控制，YawDeltaDes设为0
     RMCtrl->STCH_Default.YawAngleVelDes = TopAngleVelDes_Next;
 }
 // #pragma endregion

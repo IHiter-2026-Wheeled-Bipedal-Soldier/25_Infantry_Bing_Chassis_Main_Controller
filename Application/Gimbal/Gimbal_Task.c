@@ -52,9 +52,6 @@ void GimbalControl(void)
     /*数据反馈更新*/
     Gimbal_AllFBDataUpdate();       //更新云台相关数据的反馈值
 
-    //static FunctionalState PitchDropCmd = DISABLE; // 云台失能标志位(未开遥控器以及未调试时，云台失能，且在关遥控器时保护云台不撞到机械限位)ENABLE时在慢慢将云台放下
-    //static uint16_t PitchDrop_cnt = 0;				   // 云台失能计数变量对放下云台进行计时，在两秒之内将云台放下
-
     /*视觉处理*/
     Vision_Process(); //视觉模式预处理函数，视觉相关状态更新、视觉切换处理等
 

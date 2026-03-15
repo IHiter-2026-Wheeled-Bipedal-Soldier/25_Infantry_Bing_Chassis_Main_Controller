@@ -14,6 +14,7 @@
 #include "TIM_Config.h"
 #include "WWDG_Config.h"
 #include "CAN_Communication.h"
+#include "SuperCapacitor.h"
 
 /**
   * @brief  CAN发送0电流的函数
@@ -53,7 +54,8 @@ void BSP_All_Init(void)
     /**************************************** CAN ****************************************/
     My_CAN1_Init();
     My_CAN2_Init();
-    _BSPInit_CANSendZeroCurrent();//初始化时向电机发送0，以防上电时电机乱转
+    SuperCap_Enable(GSTCH_Capacitor); //使能超级电容输出
+    _BSPInit_CANSendZeroCurrent();    //初始化时向电机发送0，以防上电时电机乱转
 
     /**************************************** 串口 ****************************************/
     My_USART1_Init(); //遥控接收机DR16

@@ -47,7 +47,7 @@ int main()
     xTaskCreate(ReceiverTask,"ReceiverTask",200, NULL,30,&ReceiverTaskHandle);
     xTaskCreate(SendDataTask,"SendDataTask",300, NULL,20,&SendDataTaskHandle);
     xTaskCreate(DebugTask,   "DebugTask",   400, NULL,4, &DebugTaskHandle);
-    xTaskCreate(ChassisTask, "ChassisTask", 800,NULL,25,&ChassisTaskHandle);
+    xTaskCreate(ChassisTask, "ChassisTask", 800, NULL,25,&ChassisTaskHandle);
     xTaskCreate(GimbalTask,  "GimbalTask",  400, NULL,24,&GimbalTaskHandle);
     xTaskCreate(ShooterTask, "ShooterTask", 400, NULL,23,&ShooterTaskHandle);
 

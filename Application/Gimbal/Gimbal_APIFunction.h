@@ -33,7 +33,6 @@
 /**********************************云台其他相关函数********************************************/
 void Gimbal_AllFBDataUpdate(void);
 void GM_MotorProcess(void);
-float Angle_Inf_To_180(float angle);
 void Vision_StateMode_Update(void);
 void Vision_Switch_Process(void);
 
