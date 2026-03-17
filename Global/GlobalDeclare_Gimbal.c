@@ -82,7 +82,7 @@ float PitchMin = -27.0f;    //云台Pitch最小值（IMU角度），单位度
 //#endregion
 
 //#region /****灵敏度相关***********************************************/
-float RC_SST_Yaw         =  0.0003f; //Yaw轴灵敏度（遥控器模式）
+float RC_SST_Yaw         =  0.00015f; //Yaw轴灵敏度（遥控器模式）0.0003f
 float RC_SST_Pitch       =  0.0001f; //Pitch轴灵敏度（遥控器模式）
 float KeyMouse_SST_Yaw   =  80.0f;   //Yaw轴灵敏度（键鼠模式）
 float KeyMouse_SST_Pitch =  25.0f;   //Pitch轴灵敏度（键鼠模式）

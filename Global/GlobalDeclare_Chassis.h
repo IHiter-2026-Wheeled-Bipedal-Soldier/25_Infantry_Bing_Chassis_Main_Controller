@@ -44,6 +44,7 @@ typedef enum {
     CHMode_KeyMouse_Follow,    //键鼠底盘模式：跟随
     CHMode_KeyMouse_SitDown,   //键鼠底盘模式：坐下
     CHMode_KeyMouse_Jump,      //键鼠底盘模式：跳跃
+    CHMode_KeyMouse_Stair,     //键鼠底盘模式：磕台阶
     // 待补充
 } ChassisMode_EnumTypeDef;
 
@@ -72,6 +73,15 @@ typedef enum {
     CH_JumpPhase_AirFree,      // 空中自由
     CH_JumpPhase_Landing,      // 着陆缓冲
 } ChassisJumpPhase_EnumTypeDef;
+
+/*磕台阶阶段枚举定义*/
+typedef enum {
+    CH_StairPhase_Boost = 0,    // 机体加速
+    CH_StairPhase_Prepare,      // 准备磕台阶
+    CH_StairPhase_Retract,      // 迅速收腿
+    CH_StairPhase_AirFree,      // 空中自由
+    CH_StairPhase_Landing,      // 着陆缓冲
+} ChassisStairPhase_EnumTypeDef;
 // #pragma endregion
 
 // #pragma region
@@ -95,7 +105,7 @@ typedef struct {
     uint32_t KeyMouse_Follow;  // 键鼠控制下，跟随模式开始时间，单位毫秒
     uint32_t KeyMouse_SitDown; // 键鼠控制下，坐下模式开始时间，单位毫秒
     uint32_t KeyMouse_Jump;    // 键鼠控制下，跳跃模式开始时间，单位毫秒
-
+    uint32_t KeyMouse_Stair;   // 键鼠控制下，磕台阶模式开始时间，单位毫秒
 } _CH_ModeStartTime_StructTypeDef;
 
 /*IMU2底盘云控数据处理结构体类型定义，包括发送和接收(注意4字节对齐)(32位单片机默认)*/
@@ -325,6 +335,8 @@ typedef struct {
     bool F_JumpTakeoff; // 跳跃起跳阶段标志位，true表示处于起跳阶段，false表示不处于起跳阶段
     bool F_JumpRetract;  // 跳跃收腿阶段标志位，true表示处于收腿阶段，false表示不处于收腿阶段
     bool F_JumpLanding;  // 跳跃着陆阶段标志位，true表示处于着陆阶段，false表示不处于着陆阶段
+    bool F_StairFinished; // 磕台阶完成标志位，true表示已经完成磕台阶动作，false表示尚未完成磕台阶动作
+
 } CHData_StructTypeDef;
 // #pragma endregion
 
@@ -401,6 +413,7 @@ extern float TD_LegLen_rSlowSitDown;
 extern PID_StructTypeDef GstCH_LegLen1PID;
 extern PID_StructTypeDef GstCH_LegLen2PID;
 extern PID_StructTypeDef GstCH_RollCompPID;
+extern PID_StructTypeDef GstCH_YawAnglePID;
 
 extern float PID_LegLen_KpStandUp;
 extern float PID_LegLen_KdStandUp;
@@ -419,6 +432,7 @@ extern float PID_LegLen_KpJump_Landing;          // 着陆阶段Kp
 
 /*跳跃阶段全局变量，用于VOFA观察*/
 extern ChassisJumpPhase_EnumTypeDef JumpPhase;
+extern ChassisStairPhase_EnumTypeDef StairPhase;
 extern float PID_LegLen_KdJump_Landing;          // 着陆阶段Kd
 // #pragma endregion
 
@@ -488,19 +502,26 @@ extern float LegLenMinTH;
 extern float LegLenLow;
 extern float LegLenMid;
 extern float LegLenHigh;
+extern float LegLenUltraHigh;
 extern float LegLenOffGround;
 
-//* 跳跃模式相关腿长参数
+// 跳跃模式相关腿长参数
 extern float LegLenJumpCompressTarget;       // 起跳触发阈值
 extern float LegLenJumpTarget;           // 跳跃目标腿长
 extern float LegLenJumpRetractThreshold; // 收腿触发阈值
 extern float LegLenJumpRetractTarget;    // 收腿目标腿长
 
+// 磕台阶模式相关腿长参数
+extern float LegLenStairHigh;    //磕台阶前的最长伸腿腿长
+extern float LegLenStairRetract; //磕台阶时的最短收缩腿长
+// 磕台阶模式相关腿长前馈
+extern float LegFFForce_Stair_Retract; //迅速收腿阶段的腿部前馈力，用于提升收腿速度
+
 extern const float m_w;
 extern const float R_l;
 extern const float R_w;
 
-//* 用于前馈力计算 
+// 用于前馈力计算 
 extern const float m_total;
 extern const float CH_Phys_EffMass;
 extern const float CH_Phys_InertialCoeff;

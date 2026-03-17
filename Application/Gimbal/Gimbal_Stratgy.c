@@ -496,7 +496,7 @@ void GM_RCCtrl_Follow(void)
     //Pitch目标值赋值
     if(MyAbsf(PitchIncrement)> RCChannel_DeadZone)
     {
-        Pitch_Motor_Paras.PosDes += RC_SST_Pitch * PitchIncrement;
+        // Pitch_Motor_Paras.PosDes += RC_SST_Pitch * PitchIncrement;
     }
     //Yaw目标值赋值
     if(MyAbsf(YawIncrement) > RCChannel_DeadZone)

@@ -41,6 +41,14 @@ float LQR_K_Matrix_LegLenHigh[4][10] = {
     {1.6109,  2.2437,  -8.0019, -4.7705, 41.7505,  3.6576,  -30.6497, -2.3683, 287.9275, 8.3695},
     {1.6109,  2.2437,  8.0019,  4.7705,  -30.6497, -2.3683, 41.7505,  3.6576, 287.9275, 8.3695}
 };
+
+float LQR_K_Matrix_LegLenUltraHigh[4][10] = {
+    {-5.1813, -7.3668, -2.5074, -1.4380, -26.3073, -3.2523, -9.6816, -1.7331, 10.5107, 0.6918},
+    {-5.1813, -7.3668,  2.5074,  1.4380, -9.6816,  -1.7331, -26.3073, -3.2523, 10.5107, 0.6918},
+    {1.5424,  2.1626,  -7.8822, -4.7926, 43.6792,  3.9968,  -32.8990, -2.6618, 288.1336, 8.3892},
+    {1.5424,  2.1626,   7.8822,  4.7926, -32.8990, -2.6618, 43.6792,  3.9968, 288.1336, 8.3892}
+};
+
 // #pragma region PID相关函数全家桶
 
 /**
@@ -713,6 +721,17 @@ void LQR_K_MatrixUpdate(LQR_StructTypeDef* LQRptr, float LegLen1, float LegLen2)
             for(int j = 0; j < 10; j++)
             {
                 LQRptr->K_Matrix[i][j] = LQR_K_Matrix_LegLenLow[i][j];
+            }
+        }       
+    }
+
+    else if ((LegLen1 == LegLenUltraHigh) || (LegLen2 == LegLenUltraHigh))
+    {
+        for(int i = 0; i < 4; i++)
+        {
+            for(int j = 0; j < 10; j++)
+            {
+                LQRptr->K_Matrix[i][j] = LQR_K_Matrix_LegLenUltraHigh[i][j];
             }
         }       
     }
