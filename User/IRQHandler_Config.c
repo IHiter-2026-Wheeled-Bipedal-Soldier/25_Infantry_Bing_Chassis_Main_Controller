@@ -399,7 +399,7 @@ bool __IsUSART6SingleRecOK(void)
 }
 /**
   * @brief  串口6的中断服务函数，作为和辅瞄小电脑的通讯
-  * @note   
+  * @note   主要是辅瞄小电脑发送的视觉数据接收
   * @param  无
   * @retval 无
 */

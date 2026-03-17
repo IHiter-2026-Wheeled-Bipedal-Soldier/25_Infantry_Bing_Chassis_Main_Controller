@@ -794,6 +794,8 @@ bool __UA6Rx_IsVerifySuccess(void)
 /**
   * @brief  串口6接收数据，辅瞄小电脑->主控
   * @note   接收辅瞄小电脑发送的相关数据并解析
+  * 老代码说明：   之前是电控发送-180~180的角度反馈，视觉发送-180~180角度目标值后再转换到实际角度附近。
+  *               但现在直接发送无穷区间内的反馈，视觉发送的数据直接用就可以
   * @param  无
   * @retval 无
 */
@@ -801,32 +803,36 @@ void UA6Rx_VisionDataProcess(void)
 {
     //TODO：之后设置局部变量，一大长串看着太乱了
 
+    float PitchVision = GST_Vision.AimAssistDataReceiveFrame.Pitch;
+    float YawVision   = GST_Vision.AimAssistDataReceiveFrame.Yaw;
+    float PitchFB     = Pitch_Motor_Paras.PosFB;
+    float YawFB       = Yaw_Motor_Paras.PosFB;
+
     if(__UA6Rx_IsVerifySuccess())
     {
         memcpy(&GST_Vision.AimAssistDataReceiveFrame, &UA6RxDMAbuf, UA6RxDMAbuf_LEN);
 		//视觉数据可能出现问题，因此将这一帧舍弃(老代码中有相关浮点数检测函数，此处暂未应用)
         //如果视觉反馈数据与云台实际反馈数据相差超过90度，则认为视觉数据有问题，将视觉数据置为当前云台反馈值
-        if(MyAbsf(GST_Vision.AimAssistDataReceiveFrame.Pitch - Pitch_Motor_Paras.PosFB) > 90.0f || MyAbsf(GST_Vision.AimAssistDataReceiveFrame.Yaw - Yaw_Motor_Paras.PosFB) > 90.0f)		  
+        if(MyAbsf(PitchVision - PitchFB) > 90.0f || MyAbsf(YawVision - YawFB) > 90.0f)		  
         {
 			GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot = FALSE;
-            GST_Vision.AimAssistDataReceiveFrame.Pitch = Pitch_Motor_Paras.PosFB;
-            GST_Vision.AimAssistDataReceiveFrame.Yaw   = Yaw_Motor_Paras.PosFB;
+            GST_Vision.AimAssistDataReceiveFrame.Pitch = PitchFB;
+            GST_Vision.AimAssistDataReceiveFrame.Yaw   = YawFB;
         }
         else
         {
-            //将目标值转换为离当前云台反馈值最近的角度
-            GST_Vision.AimAssistDataReceiveFrame.Yaw   = GST_Vision.AimAssistDataReceiveFrame.Yaw;
-            GST_Vision.AimAssistDataReceiveFrame.Pitch = GST_Vision.AimAssistDataReceiveFrame.Pitch;
+            GST_Vision.AimAssistDataReceiveFrame.Yaw   = YawVision;
+            GST_Vision.AimAssistDataReceiveFrame.Pitch = PitchVision;
         }
 
         //TODO：不知道什么逻辑
         // Vision_ID  = Vision_State_Now&(~Vision_Enable);
-        // Vision_ID |= (GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot==true?Vision_Enable:Vision_Disable);	
+        // Vision_ID |= (GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot==true?Vision_Enable:Vision_Disable);
     }
 }
 
 /**
-  * @brief  串口6发送数据，主控->辅瞄小电脑
+  * @brief  串口6发送数据，底盘主控->辅瞄小电脑
   * @note   向辅瞄小电脑发送有关云台的数据
   * @param  无
   * @retval 无

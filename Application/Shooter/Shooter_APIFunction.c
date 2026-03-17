@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
   * @file    Shooter_APIFunction.c
-  * @author  26赛季，平衡步兵电控，马帅
-  * @date    2026.1.10
+  * @author  26赛季，平衡步兵电控，苏文远
+  * @date    2026.3.10
   * @brief   发射相关控制函数
   ******************************************************************************
 */
@@ -38,21 +38,20 @@ void FrictionWheel_Safe(void)
 {
 	float FWSpeed_Datum_temp = 0.0f; //摩擦轮目标转速临时变量
 
-	FWSpeed_Datum_temp = 0.0f;
-
 	smcR.fpDes = +FWSpeed_Datum_temp; //符号由旋转方向决定
 	smcL.fpDes = -FWSpeed_Datum_temp; //符号由旋转方向决定
 
-	//滑膜控制摩擦轮转速
+	//滑模控制摩擦轮转速
 	SlidingModeCtrler(&smcL);
 	SlidingModeCtrler(&smcR);
 
-	//摩擦轮转速过低时停止制动
-	if((MyAbsf(smcL.fpFB)+MyAbsf(smcR.fpFB))/2.0f < 60.0f)//转速低于60r/min，即360度/s，
-	{
-		smcL.fpU = 0.0f;
-		smcR.fpU = 0.0f;
-	}
+	//	目前在安全模式不使用刹停，直接输出为0，后面看有没有必要加这个功能
+	// //摩擦轮转速过低时停止制动
+	// if((MyAbsf(smcL.fpFB)+MyAbsf(smcR.fpFB))/2.0f < 60.0f)//转速低于60r/min，即360度/s，
+	// {
+	// 	smcL.fpU = 0.0f;
+	// 	smcR.fpU = 0.0f;
+	// }
 }
 
 //摩擦轮相关控制函数（用于控制摩擦轮电机目标转速设定及滑模控制）
@@ -72,7 +71,7 @@ void FrictionWheel_Debug(void)
 	smcR.fpDes = +FWSpeed_Datum_temp; //符号由旋转方向决定
 	smcL.fpDes = -FWSpeed_Datum_temp; //符号由旋转方向决定
 
-	//滑膜控制摩擦轮转速
+	//滑模控制摩擦轮转速
 	SlidingModeCtrler(&smcL);
 	SlidingModeCtrler(&smcR);
 }
@@ -110,7 +109,7 @@ void FrictionWheel_RCCtrl(void)
 	smcR.fpDes = +FWSpeed_Datum_temp; //符号由旋转方向决定
 	smcL.fpDes = -FWSpeed_Datum_temp; //符号由旋转方向决定
 
-	//滑膜控制摩擦轮转速
+	//滑模控制摩擦轮转速
 	SlidingModeCtrler(&smcL);
 	SlidingModeCtrler(&smcR);
 }
@@ -146,7 +145,7 @@ void FrictionWheel_KeyMouseCtrl(void)
 	smcR.fpDes = +FWSpeed_Datum_temp; //符号由旋转方向决定
 	smcL.fpDes = -FWSpeed_Datum_temp; //符号由旋转方向决定
 
-	//滑膜控制摩擦轮转速
+	//滑模控制摩擦轮转速
 	SlidingModeCtrler(&smcL);
 	SlidingModeCtrler(&smcR);
 }
@@ -254,8 +253,6 @@ void SupplyPellet_Debug(void)
   */
 void SupplyPellet_RCCtrl(void)
 {
-	//TODO:修改了单发逻辑，因此GstGM_MainCtrl.ST_Tx.SupplyPellet_Flag.Final_ShootOrNot_Flag目前不准（虽然但是原来也不准），后续想一想这个标志位怎么用
-
 	///*Is_Heat_Safe()*/
 	if(__IS_FrictionWheel_Ready())
 	{
@@ -379,8 +376,6 @@ void SupplyPellet_RCCtrl(void)
   */
 void SupplyPellet_KeyMouseCtrl(void)
 {
-	//TODO:修改了单发逻辑，因此GstGM_MainCtrl.ST_Tx.SupplyPellet_Flag.Final_ShootOrNot_Flag目前不准（虽然但是原来也不准），后续想一想这个标志位怎么用
-
 	///*Is_Heat_Safe()*/
 	if(__IS_FrictionWheel_Ready() && ShooterSafetyLocked == false)
 	{
@@ -503,17 +498,21 @@ bool __IS_FrictionWheel_Ready(void)
 
 /**
   * @brief  卡弹检测与保护函数
-  * @note   目前暂时不用，因为目前的拨盘在卡弹情况下也无法向回转多个SupplyStep进行回退
-  * 		后续如果换车或者拨盘设计有改动需要增加卡弹保护时再完善这个函数
+  * @note   目前的拨盘在卡弹情况下也无法向回转多个SupplyStep进行回退（机械问题）
+  * 		电控的卡弹保护算法只能稍稍缓解卡弹问题，大概率还是解决不了卡弹，主要还得靠机械结构和拨弹电机改进
+  * 		卡弹检测：位置+力矩双阈值判断（位置反馈和目标值相差3个SupplyStep以上，或者力矩反馈持续大于6.5Nm，即认为可能发生卡弹）
+  * 		卡弹保护：拨弹电机目标位置设为从当前位置回退0.5个SupplyStep；在保护状态下，如果力矩反馈小于2.5Nm，则认为卡弹问题得到缓解，退出保护状态
   * @param  无
   * @retval 无
 */
 void Bullet_Blocked_Protection(void)
 {
-    //卡弹保护
-    //卡弹条件检测（位置+速度双阈值判断）
-	if((MyAbsf(GstSH_SupplyPelletPosPID.Des - GstSH_SupplyPelletPosPID.FB) > 3.0f*MyAbsf(SupplyStep))
-		|| GstSH_Paras.SupplyPellet_TorqueFB > 6.5f)
+	float PosDes   = GstSH_SupplyPelletPosPID.Des;      //拨弹电机角度反馈值，单位度（注意是减速箱输出端角度）
+	float PosFB    = GstSH_SupplyPelletPosPID.FB;       //拨弹电机速度反馈值，单位度/s（注意是减速箱输出端角速度）
+	float TorqueFB = GstSH_Paras.SupplyPellet_TorqueFB; //拨弹电机力矩反馈值，单位Nm（注意不是减速箱输出端力矩）
+
+    //卡弹条件检测（位置+力矩双阈值判断）（位置反馈和目标值相差3个SupplyStep以上，或者力矩反馈持续大于6.5Nm，即认为可能发生卡弹）
+	if((MyAbsf(PosDes - PosFB) > 3.0f*MyAbsf(SupplyStep)) || TorqueFB > 6.5f)
 	{
 		//卡弹状态确认与保护触发
 		GstSH_Paras.Bullet_Blocked_Cnt ++;
@@ -541,10 +540,9 @@ void Bullet_Blocked_Protection(void)
     //保护状态下的恢复策略
 	if(GstSH_Paras.Bullet_Blocked_Protection_Flag == true)
 	{
-		// GstSH_SupplyPelletVelPID.U = 0.0f; //拨弹电机输出设为0，停止拨弹
 		GstSH_SupplyPelletPosPID.Des = GstSH_SupplyPelletPosPID.FB; //拨弹电机目标位置设为当前位置
-		GstSH_SupplyPelletPosPID.Des -= 0.3f*SupplyStep; //拨弹电机回退
-		if(GstSH_Paras.SupplyPellet_TorqueFB < 2.5f) //Locked_Rotor_Protect_Cnt >= 1000 || 
+		GstSH_SupplyPelletPosPID.Des -= 0.5f*SupplyStep; //拨弹电机回退0.5个SupplyStep
+		if(TorqueFB < 2.5f)
 		{Locked_Rotor_Protect_Flag = false;}
 	}
 }
