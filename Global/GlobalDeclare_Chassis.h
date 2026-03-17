@@ -30,6 +30,7 @@ typedef enum {
 
     CHMode_ManualSafe = 0,     //通用底盘模式：手动安全（遥控器拨杆左下右上）
     CHMode_AutoSafe,           //通用底盘模式：自动安全
+    CHMode_SelfSave,           //通用底盘模式：自救
     CHMode_OffGround,          //通用底盘模式：离地
 
     CHMode_RC_Standby,         //遥控器底盘模式：待机
@@ -80,6 +81,7 @@ typedef enum {
 typedef struct {
     uint32_t ManualSafe;       // 通用控制下，手动安全模式开始时间，单位毫秒
     uint32_t AutoSafe;         // 通用控制下，自动安全模式开始时间，单位毫秒
+    uint32_t SelfSave;         // 通用控制下，自救模式开始时间，单位毫秒
     uint32_t OffGround;     // RC遥控器控制下，离地模式开始时间，单位毫秒
 
     uint32_t RC_Standby;       // RC遥控器控制下，待机模式开始时间，单位毫秒
@@ -514,6 +516,22 @@ extern float LegLenJumpCompressTarget;       // 起跳触发阈值
 extern float LegLenJumpTarget;           // 跳跃目标腿长
 extern float LegLenJumpRetractThreshold; // 收腿触发阈值
 extern float LegLenJumpRetractTarget;    // 收腿目标腿长
+
+//* SelfSave模式相关参数
+extern float SelfSave_PitchFallTH;          // 触发自救的俯仰角阈值，单位度
+extern float SelfSave_RollFallTH;           // 触发自救的横滚角阈值，单位度
+extern float SelfSave_PitchPlankingTHlow;   // Planking姿态俯仰角区间下限，单位度
+extern float SelfSave_PitchPlankingTHhigh;  // Planking姿态俯仰角区间上限，单位度
+extern float SelfSave_RollSidewaysTH;       // Sideways姿态横滚角阈值，单位度
+extern float SelfSave_PitchFlatTH;          // 车身近平判据俯仰角阈值，单位度
+extern float SelfSave_RollFlatTH;           // 车身近平判据横滚角阈值，单位度
+extern float SelfSave_LegLenShortTH;        // 短腿长阈值，单位m
+extern float SelfSave_CE_RetractTarget;     // CE收腿目标，单位m
+extern float SelfSave_CE_RetractErrTH;      // CE收腿完成误差阈值，单位m
+extern float SelfSave_CE_StopLegLenTH;      // CE快速伸腿停机阈值，单位m
+extern float SelfSave_CE_ExtendTarget;      // CE快速伸腿目标，单位m
+extern float SelfSave_LegLenRetractStep;    // SelfSave慢收腿步进，单位m
+extern float SelfSave_LegLenExtendStep;     // SelfSave快伸腿步进，单位m
 
 extern const float m_w;
 extern const float R_l;

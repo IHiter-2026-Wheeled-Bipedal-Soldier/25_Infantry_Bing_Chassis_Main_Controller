@@ -182,6 +182,22 @@ float LegLenJumpTarget = 0.400f;            //跳跃目标腿长
 float LegLenJumpRetractThreshold = 0.380f;  //收腿触发阈值
 float LegLenJumpRetractTarget = 0.180f;     //收腿目标腿长
 
+//* SelfSave模式相关参数
+float SelfSave_PitchFallTH = 30.0f;         //触发自救的俯仰角阈值，单位度
+float SelfSave_RollFallTH = 30.0f;          //触发自救的横滚角阈值，单位度
+float SelfSave_PitchPlankingTHlow = 30.0f;  //Planking姿态俯仰角区间下限，单位度
+float SelfSave_PitchPlankingTHhigh = 90.0f; //Planking姿态俯仰角区间上限，单位度
+float SelfSave_RollSidewaysTH = 55.0f;      //Sideways姿态横滚角阈值，单位度
+float SelfSave_PitchFlatTH = 10.0f;         //车身近平判据俯仰角阈值，单位度
+float SelfSave_RollFlatTH = 10.0f;          //车身近平判据横滚角阈值，单位度
+float SelfSave_LegLenShortTH = 0.150f;      //短腿长阈值，单位m
+float SelfSave_CE_RetractTarget = 0.110f;   //CE收腿目标，单位m
+float SelfSave_CE_RetractErrTH = 0.025f;    //CE收腿完成误差阈值，单位m
+float SelfSave_CE_StopLegLenTH = 0.380f;    //CE快速伸腿停机阈值，单位m
+float SelfSave_CE_ExtendTarget = 0.450f;    //CE快速伸腿目标，单位m
+float SelfSave_LegLenRetractStep = 0.001f;  //SelfSave慢收腿步进，单位m
+float SelfSave_LegLenExtendStep = 0.006f;   //SelfSave快伸腿步进，单位m
+
 /*底盘零点补偿相关*/
 // 换车时需要修改
 float ChassisPitchAngleZP = 1.8f;  // 底盘Pitch轴零点补偿值，单位度，正值表示实际需要抬头才能平衡

@@ -65,6 +65,7 @@ void ChModeControl_KeyMouseStandbyMode_Ctrl(void);
 void ChModeControl_KeyMouseStandUpMode_Ctrl(void);
 void ChModeControl_KeyMouseSitDownMode_Ctrl(void);
 void ChModeControl_KeyMouseFollowMode_Ctrl(void);
+void ChModeControl_SelfSaveMode_Ctrl(void);
 
 void ChModeControl_OffGroundMode_RCControl(void);
 void ChModeControl_JumpMode_RCControl(void);
