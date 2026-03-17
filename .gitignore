@@ -4,12 +4,26 @@ STM32/Driver/
 STM32/Listings/
 build/
 
-
-# 项目临时文件
+# 项目文件
 Project/
 ProjectMemory/
+archive/
+tools/
 
 # IDE 配置
 .vscode/
+.zed/
 .github/
-.obsidian/
+.agents/
+.venv/
+
+# Obsidian: 同步可共享配置，忽略本地会话和缓存文件
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/workspaces.json
+.obsidian/cache/
+.obsidian/.trash/
+
+# 插件 data.json 大多是本地状态，默认不跟踪；Excalidraw 配置例外保留同步
+.obsidian/plugins/*/data.json
+!.obsidian/plugins/obsidian-excalidraw-plugin/data.json
