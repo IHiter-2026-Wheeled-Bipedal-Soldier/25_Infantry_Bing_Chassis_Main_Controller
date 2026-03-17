@@ -1,36 +1,29 @@
 # Keil 编译产物
-STM32/Output/*.o
-STM32/Output/*.crf
-STM32/Output/*.d
-STM32/Output/*.axf
-STM32/Output/*.hex
-STM32/Output/*.htm
-STM32/Output/*.map
-STM32/Output/*.lnp
-STM32/Output/*.dep
-STM32/Output/*.build_log.htm
-STM32/Listings/*.lst
+STM32/Output/
+STM32/Driver/
+STM32/Listings/
+build/
 
-# Keil 项目临时文件
-Project/*.uvguix.*
-Project/JLinkLog.txt
-Project/JLinkSettings.ini
-Project/.vscode/*.log
-Project/.vscode/*.lock
-
-# 应用输出
-Application/*/output/
-STM32/BSP/output/
-
-# 通用编译产物
-*.o
-*.d
-*.crf
-*.lst
+# 项目文件
+Project/
+ProjectMemory/
+archive/
+tools/
 
 # IDE 配置
 .vscode/
-.vscode/c_cpp_properties.json
-.vscode/launch.json
-.vscode/settings.json
-*.code-workspace
+.zed/
+.github/
+.agents/
+.venv/
+
+# Obsidian: 同步可共享配置，忽略本地会话和缓存文件
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/workspaces.json
+.obsidian/cache/
+.obsidian/.trash/
+
+# 插件 data.json 大多是本地状态，默认不跟踪；Excalidraw 配置例外保留同步
+.obsidian/plugins/*/data.json
+!.obsidian/plugins/obsidian-excalidraw-plugin/data.json
