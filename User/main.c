@@ -54,7 +54,7 @@ int main()
     DebugTaskHighWaterMark      = uxTaskGetStackHighWaterMark(DebugTaskHandle);
     // ReceiverTaskHighWaterMark   = uxTaskGetStackHighWaterMark(ReceiverTaskHandle);
     SendDataTaskHighWaterMark   = uxTaskGetStackHighWaterMark(SendDataTaskHandle);
-    
+
     ReceiverTaskHighWaterMark   = uxTaskGetStackHighWaterMark(ReceiverTaskHandle);
     SendDataTaskHighWaterMark   = uxTaskGetStackHighWaterMark(SendDataTaskHandle);
     DebugTaskHighWaterMark      = uxTaskGetStackHighWaterMark(DebugTaskHandle);

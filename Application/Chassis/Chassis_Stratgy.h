@@ -67,9 +67,9 @@ void ChModeControl_KeyMouseSitDownMode_Ctrl(void);
 void ChModeControl_KeyMouseFollowMode_Ctrl(void);
 void ChModeControl_SelfSaveMode_Ctrl(void);
 
-void ChModeControl_OffGroundMode_RCControl(void);
-void ChModeControl_JumpMode_RCControl(void);
-
+void ChModeControl_KeyMouseJumpMode_Ctrl(void);
+void ChModeControl_RCJumpMode_Ctrl(void);
+void ChModeControl_KeyMouseStairMode_Ctrl(void);
 //* 模式控制最终执行函数
 void ChassisModeControl_Ctrl(ChassisMode_EnumTypeDef ModeNow);
 #endif

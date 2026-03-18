@@ -3,7 +3,16 @@ STM32/Output/
 STM32/Driver/
 STM32/Listings/
 build/
+STM32/Output/
+STM32/Driver/
+STM32/Listings/
+build/
 
+# 项目文件
+Project/
+ProjectMemory/
+archive/
+tools/
 # 项目文件
 Project/
 ProjectMemory/

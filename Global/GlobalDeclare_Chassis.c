@@ -138,7 +138,8 @@ float PID_LegLen_KpJump_Landing = 1200.0f;        // 着陆阶段Kp
 float PID_LegLen_KdJump_Landing = 108000.0f;      // 着陆阶段Kd
 
 /*跳跃阶段全局变量，用于VOFA观察*/
-ChassisJumpPhase_EnumTypeDef JumpPhase = CH_JumpPhase_Wait;
+ChassisJumpPhase_EnumTypeDef  JumpPhase  = CH_JumpPhase_Wait;
+ChassisStairPhase_EnumTypeDef StairPhase = CH_StairPhase_Boost;
 
 /*Roll轴补偿相关*/
 // TODO 可以试试给小陀螺单独一套PID参数
@@ -152,6 +153,16 @@ ChassisJumpPhase_EnumTypeDef JumpPhase = CH_JumpPhase_Wait;
 #define PID_RollComp_UdMax 50.0f              // Roll轴补偿PID：Kd项输出最大值
 #define PID_RollComp_AddMax 0.01f  // Roll轴补偿PID：误差单次累加最大值
 
+/*Yaw轴PID相关*/
+#define PID_YawAngle_Kp -30.0f                // Roll轴补偿PID：比例系数Kp
+#define PID_YawAngle_Ki 0.0f                  // Roll轴补偿PID：积分系数Ki，取0表示不使用积分
+#define PID_YawAngle_Kd -100.0f              // Roll轴补偿PID：微分系数Kd
+#define PID_YawAngle_UMax 10000.0f              // Roll轴补偿PID：总输出最大值
+#define PID_YawAngle_UpMax PID_YawAngle_UMax  // Roll轴补偿PID：Kp项输出最大值
+#define PID_YawAngle_UiMax 5000.0f               // Roll轴补偿PID：Ki项输出最大值
+#define PID_YawAngle_UdMax 5000.0f              // Roll轴补偿PID：Kd项输出最大值
+#define PID_YawAngle_AddMax 0.1f             // Roll轴补偿PID：误差单次累加最大值
+
 // 老代码说明：
 // ST_PID_INIT(fpKp,fpKi,fpKd,fpUMax,fpUiMax,fpUdMax,AddMax)
 //         {0,0,fpKp,fpKi,fpKd,0,0,0,0,0,0,0,fpUMax,fpUMax,fpUiMax,fpUdMax,AddMax}
@@ -160,7 +171,7 @@ ChassisJumpPhase_EnumTypeDef JumpPhase = CH_JumpPhase_Wait;
 
 // #pragma region /****腿长、零点补偿、腿部前馈力相关**********************/
 /*腿长相关*/
-//* 以mm为单位的腿长
+// 以mm为单位的腿长
 // float LegLenMin   = 108.0f;   //腿长最小值，单位mm
 // float LegLenMinTH = 6.0f;     //腿长最小值阈值，单位mm，腿长距离LegLenMin在该阈值内时，认为到达最小腿长位置
 // float LegLenLow  = 140.0f;    //低腿长，单位mm
@@ -168,19 +179,27 @@ ChassisJumpPhase_EnumTypeDef JumpPhase = CH_JumpPhase_Wait;
 // float LegLenHigh = 290.0f;    //高腿长，单位mm
 // float LegLenOffGround = 250.0f; //离地腿长，单位mm
 
-//* 以m为单位的腿长 
+// 以m为单位的腿长 
 float LegLenMin   = 0.108f;   //腿长最小值，单位m
 float LegLenMinTH = 0.022f;   //腿长最小值阈值，单位m，腿长距离LegLenMin在该阈值内时，认为到达最小腿长位置
 float LegLenLow  = 0.180f;    //低腿长，单位m
 float LegLenMid  = 0.250f;    //中腿长，单位m
 float LegLenHigh = 0.300f;    //高腿长，单位m
+float LegLenUltraHigh = 0.340f;  //超高腿长，单位m
 float LegLenOffGround = 0.250f; //离地腿长，单位m
 
-//* 跳跃模式相关腿长参数
+// 跳跃模式相关腿长参数
 float LegLenJumpCompressTarget = 0.110f;    //跳跃蓄力腿长
 float LegLenJumpTarget = 0.400f;            //跳跃目标腿长
 float LegLenJumpRetractThreshold = 0.380f;  //收腿触发阈值
 float LegLenJumpRetractTarget = 0.180f;     //收腿目标腿长
+
+/*磕台阶相关*/
+// 磕台阶模式相关腿长参数
+float LegLenStairHigh    = 0.360f;    //磕台阶前的最长伸腿腿长
+float LegLenStairRetract = 0.120f;    //磕台阶时的最短收缩腿长
+// 磕台阶模式相关腿长前馈
+float LegFFForce_Stair_Retract = -40.0f;
 
 //* SelfSave模式相关参数
 float SelfSave_PitchFallTH = 30.0f;            //触发自救的俯仰角阈值，单位度
@@ -209,7 +228,7 @@ float ChassisPitchAngleZP = 1.8f;  // 底盘Pitch轴零点补偿值，单位度�
 float ChassisRollAngleZP = 0.0f;  // 底盘Roll轴零点补偿值，单位度
 
 /*腿部前馈力补偿相关*/
-//* 车身物理常数定义
+// 车身物理常数定义
 const float m_b = 12.5f;               // 机体质量，单位kg
 const float m_l = 1.72f;                // 单腿质量，单位kg
 const float m_w = 2.4f;               // 单轮质量，单位kg
@@ -219,8 +238,8 @@ const float R_l = 0.2655f;              // 半轮间距，单位m
 const float R_w = 0.072f;               // 轮子半径，单位m
 const float m_total = m_b + 2.0f * m_l + 2.0f * m_w;  // 底盘总质量，单位kg
 
-//* 计算前馈力时使用的常量
-//* 轮子在地面上不需要重力补偿
+/*计算前馈力时使用的常量*/
+// 轮子在地面上不需要重力补偿
 const float CH_Phys_EffMass = (0.5f * m_b + eta_l * m_l);  // 单腿承担的机体等效质量 (0.5*mb + eta_l*ml)，单位kg
 const float CH_Phys_InertialCoeff = (CH_Phys_EffMass / (2.0f * R_l));  // 惯性力系数 (M_eff / (2*R_l))
 
@@ -264,7 +283,7 @@ float LegFFForce_Jump = 1000.0f;  // 跳跃起跳阶段的腿部前馈力，单�
 float LegFFForce_Inertial_1 = 0.0f;  // 正常模式下左腿侧向惯性力补偿，单位N
 float LegFFForce_Inertial_2 = 0.0f;  // 正常模式下右腿侧向惯性力补偿，单位N
 
-//* 进行离地检测时使用的常量 
+// 进行离地检测时使用的常量 
 const float CH_Phys_OffGrd_CorCoeff = 0.5f * (m_w + 2 * m_l * eta_l_bar - m_l); // 对该侧腿支持力的修正系数 cor correction 修正
 const float CH_Phys_OffGrd_CplCoeff = 0.5f * (m_w + m_l); // 对对侧腿支持力的耦合系数 Cpl coupling 耦合
 
@@ -283,7 +302,7 @@ uint16_t CHMode_KeyMouse_StandUp_TotalTime = 600; // 键鼠起立模式的总持
 // #pragma region /****底盘平移、旋转控制相关*****************************/
 float ChMove_StillVelTH = 0.24f;  // 静止速度阈值，小于这个值认为是静止状态，单位m/s
 float ChMove_VelDesMax = 1.8f;   // 速度最大值，单位m/s
-float ChMove_Acc_Moving = 2.0f;  // 运动加速度（理论值，实际上会更小一些）
+float ChMove_Acc_Moving = 3.0f;  // 运动加速度（理论值，实际上会更小一些）
 float ChMove_Acc_Brake = 10.0f;  // 刹车加速度（理论值，实际上会更小一些）
 float ChMove_VelDesMin = 1.4f;   // 目标速度最小值
 float ChMove_VelMovingChangeRateMin = 0.1f;   // 速度变化最小值
@@ -407,6 +426,12 @@ PID_StructTypeDef GstCH_RollCompPID = {
     PID_RollComp_UMax,  PID_RollComp_UpMax, PID_RollComp_UiMax,
     PID_RollComp_UdMax, PID_RollComp_AddMax};  // 底盘Roll轴补偿PID结构体
 
+/*Yaw角度PID控制结构体，初始化顺序：Kp, Ki, Kd, UMax, UpMax, UiMax, UdMax,
+ * AddMax：比例系数、积分系数、微分系数、总输出最大值、Kp项输出最大值、Ki项输出最大值、Kd项输出最大值、SumE单次累加的最大值*/
+PID_StructTypeDef GstCH_YawAnglePID = {
+    PID_YawAngle_Kp,    PID_YawAngle_Ki,    PID_YawAngle_Kd,
+    PID_YawAngle_UMax,  PID_YawAngle_UpMax, PID_YawAngle_UiMax,
+    PID_YawAngle_UdMax, PID_YawAngle_AddMax};  // 左腿长度PID结构体，以m米为单位
 // #pragma endregion
 
 // #pragma region

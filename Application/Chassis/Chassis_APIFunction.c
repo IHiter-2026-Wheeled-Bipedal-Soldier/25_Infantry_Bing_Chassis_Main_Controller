@@ -340,35 +340,35 @@ void HM_DesDataUpdate(RobotControl_StructTypeDef RMCtrl)
         GSTCH_HM2.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM2.TorqueDes); //右轮毂电机电流目标值
 			  return;
     }
-        /*否则采取默认的LQR计算控制*/
-        /*离地检测部分*/
-        if((GSTCH_Data.F_OffGround1 == true) && (GSTCH_Data.F_OffGround2 == true)) 
-        {
-            // 双腿离地：两侧轮毂都置零（可按需要改成安全策略）
-            GSTCH_HM1.TorqueDes  = 0.0f;
-            GSTCH_HM2.TorqueDes  = 0.0f;
-        }
-        else if(GSTCH_Data.F_OffGround1 == true) 
-        {
-            // 左腿离地
-            GSTCH_HM1.TorqueDes  = 0.0f;
-            GSTCH_HM2.TorqueDes  = + LQR_Get_uVector(&GstCH_LQRCal, 2-1) + GSTCH_HMTorqueComp.T_Comp_HM2;
-        }
-        else if(GSTCH_Data.F_OffGround2 == true) 
-        {
-            // 右腿离地
-            GSTCH_HM1.TorqueDes  = - LQR_Get_uVector(&GstCH_LQRCal, 1-1) + GSTCH_HMTorqueComp.T_Comp_HM1;
-            GSTCH_HM2.TorqueDes  = 0.0f;
-        }
-        else
-        {
-            // 正常落地
-            GSTCH_HM1.TorqueDes  = - LQR_Get_uVector(&GstCH_LQRCal, 1-1) + GSTCH_HMTorqueComp.T_Comp_HM1;
-            GSTCH_HM2.TorqueDes  = + LQR_Get_uVector(&GstCH_LQRCal, 2-1) + GSTCH_HMTorqueComp.T_Comp_HM2;
-        }
-        // 理论上讲轮毂电机应该是左轮为正、右轮为负，但是行星减速箱会反转方向，所以这里取反
-        GSTCH_HM1.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM1.TorqueDes); //左轮毂电机电流目标值
-        GSTCH_HM2.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM2.TorqueDes); //右轮毂电机电流目标值
+    /*否则采取默认的LQR计算控制*/
+    /*离地检测部分*/
+    if((GSTCH_Data.F_OffGround1 == true) && (GSTCH_Data.F_OffGround2 == true)) 
+    {
+        // 双腿离地：两侧轮毂都置零（可按需要改成安全策略）
+        GSTCH_HM1.TorqueDes  = 0.0f;
+        GSTCH_HM2.TorqueDes  = 0.0f;
+    }
+    else if(GSTCH_Data.F_OffGround1 == true)
+    {
+        // 左腿离地
+        GSTCH_HM1.TorqueDes  = 0.0f;
+        GSTCH_HM2.TorqueDes  = + (LQR_Get_uVector(&GstCH_LQRCal, 2-1) - GSTCH_HMTorqueComp.T_Comp_HM2);
+    }
+    else if(GSTCH_Data.F_OffGround2 == true)
+    {
+        // 右腿离地
+        GSTCH_HM1.TorqueDes  = - (LQR_Get_uVector(&GstCH_LQRCal, 1-1) - GSTCH_HMTorqueComp.T_Comp_HM1);
+        GSTCH_HM2.TorqueDes  = 0.0f;
+    }
+    else
+    {
+        // 正常落地
+        GSTCH_HM1.TorqueDes  = - (LQR_Get_uVector(&GstCH_LQRCal, 1-1) - GSTCH_HMTorqueComp.T_Comp_HM1);
+        GSTCH_HM2.TorqueDes  = + (LQR_Get_uVector(&GstCH_LQRCal, 2-1) - GSTCH_HMTorqueComp.T_Comp_HM2);
+    }
+    // 理论上讲轮毂电机应该是左轮为正、右轮为负，但是行星减速箱会反转方向，所以这里取反
+    GSTCH_HM1.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM1.TorqueDes); //左轮毂电机电流目标值
+    GSTCH_HM2.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM2.TorqueDes); //右轮毂电机电流目标值
 }
 
 /**
@@ -527,11 +527,17 @@ void CH_VelKF_Process(void) {
  * @param  无
  * @retval 无
  */
-void CH_HMTorqueComp_Process(void) {
-    _HM_StruggleStateDetect();
-    // 计算正常牵引力矩补偿
-    GSTCH_Data.HM1_TorqueComp = K_Trac_Norm_tmp * GSTCH_Data.HM1_VelErr;
-    GSTCH_Data.HM2_TorqueComp = K_Trac_Norm_tmp * GSTCH_Data.HM2_VelErr;
+void CH_HMTorqueComp_Process(void)
+{
+    // _HM_StruggleStateDetect();
+    // // 计算正常牵引力矩补偿
+    // GSTCH_Data.HM1_TorqueComp = K_Trac_Norm_tmp * GSTCH_Data.HM1_VelErr;
+    // GSTCH_Data.HM2_TorqueComp = K_Trac_Norm_tmp * GSTCH_Data.HM2_VelErr;
+
+    GSTCH_HMTorqueComp.T_Comp_HM1 = K_Trac_Norm_tmp*(GSTCH_HM1.AngleVelFB + LegLinkage_GetxCdot(&GstCH_LegLinkCal1, LeftSide) - (GSTCH_Data.VelFB - R_l*GSTCH_Data.YawAngleVelFB*A2R)/R_w);
+    GSTCH_HMTorqueComp.T_Comp_HM2 = K_Trac_Norm_tmp*(GSTCH_HM2.AngleVelFB + LegLinkage_GetxCdot(&GstCH_LegLinkCal2, RightSide) - (GSTCH_Data.VelFB + R_l*GSTCH_Data.YawAngleVelFB*A2R)/R_w);
+    GSTCH_Data.HM1_TorqueComp = GSTCH_HMTorqueComp.T_Comp_HM1;
+    GSTCH_Data.HM2_TorqueComp = GSTCH_HMTorqueComp.T_Comp_HM2;
 }
 
 /**
@@ -1098,61 +1104,61 @@ float _CH_KeyMouse_Move_GetDesVel(CHData_StructTypeDef* CHData)
     }
 
 
-    /*左右运动速度目标赋值*/
-    if((MoveYDirection == MoveYDirection_Left && F_DirectionInvert == false) || (MoveYDirection == MoveYDirection_Right && F_DirectionInvert == true))
-    {
-        //* 检测到处于较快的后退状态，先以最大变化率刹车在向前移动
-        if(VelYFB <= -ChMove_StillVelTH)
-        {
-            VelDesNext_y = VelYFB + ChMove_VelBrakingChangeRateMax;
-            // YawOffset = -90.0f;
-        }
-        else
-        {
-            //* 按照设定的加速度逐步向最大速度移动
-            VelDesNext_y = StepChangeValue(VelDesPre, ChMove_VelDesMax, ChMove_Acc_Moving * GCH_TaskTime);                           //* 逐步改变目标速度
-            VelDesNext_y = Limit(VelDesNext_y, VelYFB + ChMove_VelMovingChangeRateMin, VelYFB + ChMove_VelMovingChangeRateMax);  //* 限制目标速度变化范围（让实际速度能够更好跟上目标速度的）
-            VelDesNext_y = Limit(VelDesNext_y, ChMove_VelDesMin, ChMove_VelDesMax);                                                  //* 限制目标速度最小最大值
-            // YawOffset = 90.0f;
-        }
-    }
-    else if((MoveYDirection == MoveYDirection_Right && F_DirectionInvert == false) || (MoveYDirection == MoveYDirection_Left && F_DirectionInvert == true))
-    {
-        if(VelYFB >= ChMove_StillVelTH)
-        {
-            VelDesNext_y = VelYFB - ChMove_VelBrakingChangeRateMax;
-            // YawOffset = 90.0f;
-        }
-        else
-        {
-            VelDesNext_y = StepChangeValue(VelDesPre, -ChMove_VelDesMax, ChMove_Acc_Moving * GCH_TaskTime);                           //逐步改变目标速度
-            VelDesNext_y = Limit(VelDesNext_y, VelYFB - ChMove_VelMovingChangeRateMax, VelYFB - ChMove_VelMovingChangeRateMin);   //限制目标速度变化范围
-            VelDesNext_y = Limit(VelDesNext_y, -ChMove_VelDesMax, -ChMove_VelDesMin);                                                 //限制目标速度最小最大值
-            // YawOffset = -90.0f;
-        }
-    }
-    else if(MoveYDirection == MoveYDirection_Brake)
-    {
-        // 用更大的加速度来刹车
-        VelDesNext_y = StepChangeValue(VelDesPre, 0.0f, ChMove_Acc_Brake * GCH_TaskTime);
-        if(VelYFB > ChMove_BrakeVelLimitTH)//如果当前速度是正的
-        {
-            VelDesNext_y = Limit(VelDesNext_y, VelYFB - ChMove_VelBrakingChangeRateMax, VelYFB);   //限制目标速度变化范围
-            VelDesNext_y = Limit(VelDesNext_y, 0.0f, 0.8f);                                            //限制目标速度最小最大值
-            // YawOffset = 90.0f;
-        }
-        else if(VelYFB < -ChMove_BrakeVelLimitTH)//如果当前速度是负的
-        {
-            VelDesNext_y = Limit(VelDesNext_y, VelYFB, VelYFB + ChMove_VelBrakingChangeRateMax);   //限制目标速度变化范围
-            VelDesNext_y = Limit(VelDesNext_y, -0.8f, 0.0f); //限制目标速度最小最大值
-            // YawOffset = -90.0f;
-        }
+    // /*左右运动速度目标赋值*/
+    // if((MoveYDirection == MoveYDirection_Left && F_DirectionInvert == false) || (MoveYDirection == MoveYDirection_Right && F_DirectionInvert == true))
+    // {
+    //     //* 检测到处于较快的后退状态，先以最大变化率刹车在向前移动
+    //     if(VelYFB <= -ChMove_StillVelTH)
+    //     {
+    //         VelDesNext_y = VelYFB + ChMove_VelBrakingChangeRateMax;
+    //         // YawOffset = -90.0f;
+    //     }
+    //     else
+    //     {
+    //         //* 按照设定的加速度逐步向最大速度移动
+    //         VelDesNext_y = StepChangeValue(VelDesPre, ChMove_VelDesMax, ChMove_Acc_Moving * GCH_TaskTime);                           //* 逐步改变目标速度
+    //         VelDesNext_y = Limit(VelDesNext_y, VelYFB + ChMove_VelMovingChangeRateMin, VelYFB + ChMove_VelMovingChangeRateMax);  //* 限制目标速度变化范围（让实际速度能够更好跟上目标速度的）
+    //         VelDesNext_y = Limit(VelDesNext_y, ChMove_VelDesMin, ChMove_VelDesMax);                                                  //* 限制目标速度最小最大值
+    //         // YawOffset = 90.0f;
+    //     }
+    // }
+    // else if((MoveYDirection == MoveYDirection_Right && F_DirectionInvert == false) || (MoveYDirection == MoveYDirection_Left && F_DirectionInvert == true))
+    // {
+    //     if(VelYFB >= ChMove_StillVelTH)
+    //     {
+    //         VelDesNext_y = VelYFB - ChMove_VelBrakingChangeRateMax;
+    //         // YawOffset = 90.0f;
+    //     }
+    //     else
+    //     {
+    //         VelDesNext_y = StepChangeValue(VelDesPre, -ChMove_VelDesMax, ChMove_Acc_Moving * GCH_TaskTime);                           //逐步改变目标速度
+    //         VelDesNext_y = Limit(VelDesNext_y, VelYFB - ChMove_VelMovingChangeRateMax, VelYFB - ChMove_VelMovingChangeRateMin);   //限制目标速度变化范围
+    //         VelDesNext_y = Limit(VelDesNext_y, -ChMove_VelDesMax, -ChMove_VelDesMin);                                                 //限制目标速度最小最大值
+    //         // YawOffset = -90.0f;
+    //     }
+    // }
+    // else if(MoveYDirection == MoveYDirection_Brake)
+    // {
+    //     // 用更大的加速度来刹车
+    //     VelDesNext_y = StepChangeValue(VelDesPre, 0.0f, ChMove_Acc_Brake * GCH_TaskTime);
+    //     if(VelYFB > ChMove_BrakeVelLimitTH)//如果当前速度是正的
+    //     {
+    //         VelDesNext_y = Limit(VelDesNext_y, VelYFB - ChMove_VelBrakingChangeRateMax, VelYFB);   //限制目标速度变化范围
+    //         VelDesNext_y = Limit(VelDesNext_y, 0.0f, 0.8f);                                            //限制目标速度最小最大值
+    //         // YawOffset = 90.0f;
+    //     }
+    //     else if(VelYFB < -ChMove_BrakeVelLimitTH)//如果当前速度是负的
+    //     {
+    //         VelDesNext_y = Limit(VelDesNext_y, VelYFB, VelYFB + ChMove_VelBrakingChangeRateMax);   //限制目标速度变化范围
+    //         VelDesNext_y = Limit(VelDesNext_y, -0.8f, 0.0f); //限制目标速度最小最大值
+    //         // YawOffset = -90.0f;
+    //     }
 
-        if(VelYFB >= -ChMove_StillVelTH && VelYFB <= ChMove_StillVelTH)
-        {
-            // YawOffset = 0.0f;
-        }
-    }
+    //     if(VelYFB >= -ChMove_StillVelTH && VelYFB <= ChMove_StillVelTH)
+    //     {
+    //         // YawOffset = 0.0f;
+    //     }
+    // }
 
 
     /*xy方向协调控制*/
@@ -1293,6 +1299,33 @@ float _CH_Move_GetTurnVel(CHData_StructTypeDef* CHData)
 }
 
 /**
+  * @brief  底盘转向偏航角速度获取函数
+  * @note   根据角度误差计算Yaw方向PID，输出值作为底盘转向偏航角速度目标值
+  * @param  无
+  * @retval float类型，底盘偏航角速度目标值
+*/
+float _CH_RC_Move_FollowMode_GetTurnVel(RobotControl_StructTypeDef *RMCtrl)
+{
+    float YawAngleU_Max = 0.0f;    //底盘转向控制输出的最大值
+    float YawAngleLimitCoe = 0.6f; //底盘转向控制输出的限制系数，由于模型误差等因素，只使用60%的理论最大值
+	float YawAccStep = 1.0f;       //Yaw角加速度步进值，单位度/s每周期
+
+    PID_SetDes(&GstCH_YawAnglePID, 0.0f); //目标Yaw角度为0
+    PID_SetFB(&GstCH_YawAnglePID, GstCH_FollowMode_Paras.RelativeYawAngle); //-Angle_Inf_To_180(Benjamin_Position)
+	PID_Cal(&GstCH_YawAnglePID);
+    float h = (GstCH_LegLen1PID.FB+GstCH_LegLen2PID.FB)/2.0f + 0.02062f + R_w/2; //0.02062m是虚拟摆杆末端到机体质心的距离，是按老代码写的
+    float r = R_l;
+    float v = GSTCH_Data.VelFB;
+    if(v < 1)
+    {YawAngleU_Max = 9.0f * R2A;}
+    else
+    {YawAngleU_Max = MyAbsf(9.8f*r/(v*h)) * R2A;}
+    GstCH_YawAnglePID.U = YawAngleLimitCoe * Limit(GstCH_YawAnglePID.U, -YawAngleU_Max, YawAngleU_Max);
+
+    return StepChangeValue(RMCtrl->STCH_Default.YawAngleVelDes, GstCH_YawAnglePID.U, YawAccStep);
+}
+
+/**
   * @brief  键鼠模式下，底盘转向偏航角度获取函数
   * @note   
   * @param  无
@@ -1378,8 +1411,8 @@ void ChModeControl_FollowMode_RCControl_MoveHandler(CHData_StructTypeDef* CHData
     RMCtrl->STCH_Default.VelDes = _CH_RC_Move_GetDesVel(CHData);
 
     /*转向的偏航角度增量获取*/
-    RMCtrl->STCH_Default.YawDeltaDes = GstCH_FollowMode_Paras.RelativeYawAngle;
-    RMCtrl->STCH_Default.YawAngleVelDes = 0.0f; //Yaw角速度目标值设为0以增加阻尼防止超调，但是LQR调好之后就无所谓了
+    RMCtrl->STCH_Default.YawDeltaDes = Limit(GstCH_FollowMode_Paras.RelativeYawAngle, -90.0f, 90.0f);
+    RMCtrl->STCH_Default.YawAngleVelDes = _CH_RC_Move_FollowMode_GetTurnVel(RMCtrl);
 
     /*底盘位移目标值处理*/
     _CH_Move_DisHandler(CHData, RMCtrl);
