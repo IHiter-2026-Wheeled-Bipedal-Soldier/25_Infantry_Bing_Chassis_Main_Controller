@@ -301,7 +301,7 @@ uint16_t CHMode_KeyMouse_StandUp_TotalTime = 600; // 键鼠起立模式的总持
 /****************************************宏定义、常量定义（控制策略Strategy相关）（可能需要修改）***************************************/
 // #pragma region /****底盘平移、旋转控制相关*****************************/
 float ChMove_StillVelTH = 0.24f;  // 静止速度阈值，小于这个值认为是静止状态，单位m/s
-float ChMove_VelDesMax = 1.8f;   // 速度最大值，单位m/s
+float ChMove_VelDesMax = 2.4f;   // 速度最大值，单位m/s
 float ChMove_Acc_Moving = 3.0f;  // 运动加速度（理论值，实际上会更小一些）
 float ChMove_Acc_Brake = 10.0f;  // 刹车加速度（理论值，实际上会更小一些）
 float ChMove_VelDesMin = 1.4f;   // 目标速度最小值
