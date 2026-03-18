@@ -157,14 +157,14 @@ ChassisStairPhase_EnumTypeDef StairPhase = CH_StairPhase_Boost;
 #define PID_RollComp_AddMax 0.01f  // Roll轴补偿PID：误差单次累加最大值
 
 /*Yaw轴PID相关*/
-#define PID_YawAngle_Kp 0.0f                // Roll轴补偿PID：比例系数Kp
+#define PID_YawAngle_Kp -30.0f                // Roll轴补偿PID：比例系数Kp
 #define PID_YawAngle_Ki 0.0f                  // Roll轴补偿PID：积分系数Ki，取0表示不使用积分
-#define PID_YawAngle_Kd 0.0f              // Roll轴补偿PID：微分系数Kd
-#define PID_YawAngle_UMax 0.0f              // Roll轴补偿PID：总输出最大值
+#define PID_YawAngle_Kd -100.0f              // Roll轴补偿PID：微分系数Kd
+#define PID_YawAngle_UMax 10000.0f              // Roll轴补偿PID：总输出最大值
 #define PID_YawAngle_UpMax PID_YawAngle_UMax  // Roll轴补偿PID：Kp项输出最大值
-#define PID_YawAngle_UiMax 0.0f               // Roll轴补偿PID：Ki项输出最大值
-#define PID_YawAngle_UdMax 0.0f              // Roll轴补偿PID：Kd项输出最大值
-#define PID_YawAngle_AddMax 0.01f             // Roll轴补偿PID：误差单次累加最大值
+#define PID_YawAngle_UiMax 5000.0f               // Roll轴补偿PID：Ki项输出最大值
+#define PID_YawAngle_UdMax 5000.0f              // Roll轴补偿PID：Kd项输出最大值
+#define PID_YawAngle_AddMax 0.1f             // Roll轴补偿PID：误差单次累加最大值
 
 // 老代码说明：
 // ST_PID_INIT(fpKp,fpKi,fpKd,fpUMax,fpUiMax,fpUdMax,AddMax)
@@ -202,7 +202,7 @@ float LegLenJumpRetractTarget = 0.180f;     //收腿目标腿长
 float LegLenStairHigh    = 0.360f;    //磕台阶前的最长伸腿腿长
 float LegLenStairRetract = 0.120f;    //磕台阶时的最短收缩腿长
 // 磕台阶模式相关腿长前馈
-float LegFFForce_Stair_Retract = -20.0f;
+float LegFFForce_Stair_Retract = -40.0f;
 
 /*底盘零点补偿相关*/
 // 换车时需要修改
@@ -284,8 +284,8 @@ uint16_t CHMode_KeyMouse_StandUp_TotalTime = 600; // 键鼠起立模式的总持
 /****************************************宏定义、常量定义（控制策略Strategy相关）（可能需要修改）***************************************/
 // #pragma region /****底盘平移、旋转控制相关*****************************/
 float ChMove_StillVelTH = 0.24f;  // 静止速度阈值，小于这个值认为是静止状态，单位m/s
-float ChMove_VelDesMax = 2.4f;   // 速度最大值，单位m/s
-float ChMove_Acc_Moving = 2.0f;  // 运动加速度（理论值，实际上会更小一些）
+float ChMove_VelDesMax = 1.8f;   // 速度最大值，单位m/s
+float ChMove_Acc_Moving = 3.0f;  // 运动加速度（理论值，实际上会更小一些）
 float ChMove_Acc_Brake = 10.0f;  // 刹车加速度（理论值，实际上会更小一些）
 float ChMove_VelDesMin = 1.4f;   // 目标速度最小值
 float ChMove_VelMovingChangeRateMin = 0.1f;   // 速度变化最小值

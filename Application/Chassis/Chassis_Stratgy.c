@@ -254,6 +254,15 @@ bool _Is_KeyMouse_Stair(void)
     {return false;}
 }
 
+// RCFollow -> Stair: 拨轮短上拨
+bool _Is_RC_Stair(void)
+{
+    if(Gst_CHSH_RollerMode_Paras.FrictionMode_Flag == 1) // 拨轮短上拨
+    {return true;}
+    else
+    {return false;}
+}
+
 // RCFree/RCFollow/KeyMouseFollow -> OffGround: 离地标志位成立
 bool _Is_To_OffGround(Chassis_ModeChooseParameter_StructTypeDef ST_ModeChoosePara)
 {
@@ -339,13 +348,14 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
             LastActiveMode = CHMode_RC_Free;         // 持续更新记忆：我在RCFree
             if(_Is_RCFree_To_RCSitDown())                                   NextMode = CHMode_RC_SitDown;
             else if(_Is_RCFree_To_RCFollow())                               NextMode = CHMode_RC_Follow;
-            else if(_Is_RC_Jump())                                          NextMode = CHMode_RC_Jump;
+            // else if(_Is_RC_Jump())                                          NextMode = CHMode_RC_Jump;
             else if(_Is_To_OffGround(ST_ModeChoosePara))                    NextMode = CHMode_OffGround;
             break;
         case CHMode_RC_Follow:
             LastActiveMode = CHMode_RC_Follow;       // 持续更新记忆：我在RCFollow
             if(_Is_RCFollow_To_RCFree())                                    NextMode = CHMode_RC_Free;
-            else if(_Is_RC_Jump())                                          NextMode = CHMode_RC_Jump;
+            // else if(_Is_RC_Jump())                                          NextMode = CHMode_RC_Jump;
+            // else if(_Is_RC_Stair())                                         NextMode = CHMode_RC_Stair;
             else if(_Is_To_OffGround(ST_ModeChoosePara))                    NextMode = CHMode_OffGround;
             break;
         case CHMode_KeyMouse_Follow:
@@ -365,6 +375,10 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
         case CHMode_KeyMouse_Jump:
             // 检测到落地 -> 回到 LastActiveMode (RCFree / RCFollow / KeyMouseFollow)
             if(GSTCH_Data.F_JumpLanding && _Is_To_Landed(ST_ModeChoosePara))   NextMode = LastActiveMode; 
+            break;
+        case CHMode_RC_Stair:
+            // 检测到磕台阶完成 -> 回到 LastActiveMode (RCFree / RCFollow / KeyMouseFollow)
+            if(GSTCH_Data.F_StairFinished && _Is_To_Landed(ST_ModeChoosePara)) NextMode = LastActiveMode; 
             break;
         case CHMode_KeyMouse_Stair:
             // 检测到磕台阶完成 -> 回到 LastActiveMode (RCFree / RCFollow / KeyMouseFollow)
@@ -1627,7 +1641,11 @@ void ChModeControl_KeyMouseStairMode_Ctrl(void)
     float LegLenFB = (GSTCH_Data.LegLen1FB+GSTCH_Data.LegLen2FB)/2.0f; //腿长平均值反馈，单位m
 
     //磕台阶完成标志位置0
-    GSTCH_Data.F_StairFinished = 0;
+    if(GSTCH_Data.F_StairFinished == 1)
+    {
+        GSTCH_Data.F_StairFinished = 0;
+        StairPhase = CH_StairPhase_Boost;
+    }
 
     switch(StairPhase)
     {
@@ -1675,14 +1693,14 @@ void ChModeControl_KeyMouseStairMode_Ctrl(void)
         /*3. Retract: 迅速收腿阶段*/
         case CH_StairPhase_Retract:
             // 切换条件：腿长接近目标，认为已经着地，进入着陆模式
-            if(MyAbsf(LegLenFB - GST_RMCtrl.STCH_Default.LegLen1Des) < 0.08f)
+            if(MyAbsf(LegLenFB - LegLenStairRetract) < 0.02f)
             {StairPhase = CH_StairPhase_Landing;}
             // TODO：老代码另一个状态切换逻辑，看不懂
             // if(fabs(LengthLeftReal-LengthAvgDes)<80.0f && fabs(LengthRightReal-LengthAvgDes)<80.0f && !OffGround_Flag_Pre && OffGround_Flag)
             //     g_chassis_stair_mode = Stair_Landing_Mode;
         
         // 收腿阶段：较大PID快速收缩
-            if(MyAbsf(LegLenFB - GST_RMCtrl.STCH_Default.LegLen1Des*MM2M) > Retract_ErrThreshold) // 远离目标：大PID + 大前馈（快速收缩）
+            if(MyAbsf(LegLenFB - GST_RMCtrl.STCH_Default.LegLen1Des) > Retract_ErrThreshold) // 远离目标：大PID + 大前馈（快速收缩）
             {
                 PID_SetKpKiKd(&GstCH_LegLen1PID, PID_LegLen_KpJump_Retract, 0.0f, PID_LegLen_KdJump_Retract);
                 PID_SetKpKiKd(&GstCH_LegLen2PID, PID_LegLen_KpJump_Retract, 0.0f, PID_LegLen_KdJump_Retract);
@@ -1739,6 +1757,143 @@ void ChModeControl_KeyMouseStairMode_Ctrl(void)
     CH_MotionUpdateAndProcess(GST_RMCtrl);
 }
 
+/**
+ * @brief  遥控器模式下，磕台阶模式控制函数
+ * @note   跳跃模式状态机实现，包含6个阶段：
+ *         1. Wait:      等待阶段，进入跳跃后的短暂准备
+ *         2. Compress:  压缩蓄力，下蹲储能
+ *         3. Takeoff:   起跳伸展，快速伸腿获得初速度
+ *         4. Retract:   收腿阶段，离地后快速收缩腿部
+ *         5. AirFree:   空中自由，保持姿态等待落地
+ *         6. Landing:   着陆缓冲，触地瞬间缓冲冲击
+ * @param  无
+ * @retval 无
+ */
+void ChModeControl_RCStairMode_Ctrl(void)
+{
+	static uint16_t Landing_Time_cnt = 0;
+    float Retract_ErrThreshold = 0.150f;         // 分段阈值，单位m
+    float AccXFB = GstCH_IMU2.ST_Rx.AccX;        //机体前进方向加速度，单位m/s^2
+    float PitchFB = GstCH_IMU2.ST_Rx.PitchAngle; //机体俯仰角度反馈，单位度
+    float LegLenFB = (GSTCH_Data.LegLen1FB+GSTCH_Data.LegLen2FB)/2.0f; //腿长平均值反馈，单位m
+
+    //磕台阶完成标志位置0
+    if(GSTCH_Data.F_StairFinished == 1)
+    {
+        GSTCH_Data.F_StairFinished = 0;
+        StairPhase = CH_StairPhase_Boost;
+    }
+
+    switch(StairPhase)
+    {
+        /*1. Boost: 机体加速阶段*/
+        case CH_StairPhase_Boost:
+            // 加速阶段：若向前加速并且Pitch角度正常，则进入准备阶段
+            if(MyAbsf(AccXFB) > 35.0f && MyAbsf(PitchFB - ChassisPitchAngleZP) < 6.0f)
+            {StairPhase = CH_StairPhase_Prepare;}
+
+            PID_SetKpKiKd(&GstCH_LegLen1PID, PID_LegLen_KpNorm, 0.0f, PID_LegLen_KdNorm);
+            PID_SetKpKiKd(&GstCH_LegLen2PID, PID_LegLen_KpNorm, 0.0f, PID_LegLen_KdNorm);
+
+            TD_Setr(&GstCH_LegLen1TD, TD_LegLen_rNorm);
+            TD_Setr(&GstCH_LegLen2TD, TD_LegLen_rNorm);
+            
+            // 目标腿长
+            GST_RMCtrl.STCH_Default.LegLen1Des = LegLenStairHigh;
+            GST_RMCtrl.STCH_Default.LegLen2Des = LegLenStairHigh;
+            // 前馈力
+            GST_RMCtrl.STCH_Default.Leg1FFForce = LegFFForce_Gravity_1;
+            GST_RMCtrl.STCH_Default.Leg2FFForce = LegFFForce_Gravity_2;
+            break;
+        
+        /*2. Prepare: 磕台阶准备阶段*/
+        case CH_StairPhase_Prepare:
+            // 准备阶段：若Pitch角度差值过大，则认为磕到台阶，进入迅速收腿阶段
+            // TODO：老代码加入了时间判断，若准备阶段时间大于2s则自动收腿，感觉不是很合适，目前暂时不用
+            if(MyAbsf(PitchFB - ChassisPitchAngleZP) >= 8.0f) //Crashing_Time_cnt >= 2000 || fabs(G_ST_IMU2.Receive.pitch_angle - Med_Angle_Norm)>=8.0f
+            {StairPhase = CH_StairPhase_Retract;}             //Crashing_Time_cnt = 0;// Crashing_Time_cnt++;
+
+            PID_SetKpKiKd(&GstCH_LegLen1PID, PID_LegLen_KpNorm, 0.0f, PID_LegLen_KdNorm);
+            PID_SetKpKiKd(&GstCH_LegLen2PID, PID_LegLen_KpNorm, 0.0f, PID_LegLen_KdNorm);
+
+            TD_Setr(&GstCH_LegLen1TD, TD_LegLen_rNorm);
+            TD_Setr(&GstCH_LegLen2TD, TD_LegLen_rNorm);
+            
+            // 目标腿长
+            GST_RMCtrl.STCH_Default.LegLen1Des = LegLenStairHigh;
+            GST_RMCtrl.STCH_Default.LegLen2Des = LegLenStairHigh;
+            // 前馈力
+            GST_RMCtrl.STCH_Default.Leg1FFForce = LegFFForce_Gravity_1;
+            GST_RMCtrl.STCH_Default.Leg2FFForce = LegFFForce_Gravity_2;
+            break;
+
+        /*3. Retract: 迅速收腿阶段*/
+        case CH_StairPhase_Retract:
+            // 切换条件：腿长接近目标，认为已经着地，进入着陆模式
+            if(MyAbsf(LegLenFB - LegLenStairRetract) < 0.02f)
+            {StairPhase = CH_StairPhase_Landing;}
+            // TODO：老代码另一个状态切换逻辑，看不懂
+            // if(fabs(LengthLeftReal-LengthAvgDes)<80.0f && fabs(LengthRightReal-LengthAvgDes)<80.0f && !OffGround_Flag_Pre && OffGround_Flag)
+            //     g_chassis_stair_mode = Stair_Landing_Mode;
+        
+        // 收腿阶段：较大PID快速收缩
+            if(MyAbsf(LegLenFB - GST_RMCtrl.STCH_Default.LegLen1Des) > Retract_ErrThreshold) // 远离目标：大PID + 大前馈（快速收缩）
+            {
+                PID_SetKpKiKd(&GstCH_LegLen1PID, PID_LegLen_KpJump_Retract, 0.0f, PID_LegLen_KdJump_Retract);
+                PID_SetKpKiKd(&GstCH_LegLen2PID, PID_LegLen_KpJump_Retract, 0.0f, PID_LegLen_KdJump_Retract);
+            }
+            else // 接近目标：减小参数
+            {
+                PID_SetKpKiKd(&GstCH_LegLen1PID, PID_LegLen_KpJump_Retract * 0.8f, 0.0f, PID_LegLen_KdJump_Retract * 0.8f);
+                PID_SetKpKiKd(&GstCH_LegLen2PID, PID_LegLen_KpJump_Retract * 0.8f, 0.0f, PID_LegLen_KdJump_Retract * 0.8f);
+            }
+
+            TD_Setr(&GstCH_LegLen1TD, TD_LegLen_rNorm);
+            TD_Setr(&GstCH_LegLen2TD, TD_LegLen_rNorm);
+
+            GST_RMCtrl.STCH_Default.LegLen1Des = LegLenStairRetract;
+            GST_RMCtrl.STCH_Default.LegLen2Des = LegLenStairRetract;
+            GST_RMCtrl.STCH_Default.Leg1FFForce = LegFFForce_Stair_Retract;
+            GST_RMCtrl.STCH_Default.Leg2FFForce = LegFFForce_Stair_Retract;
+            break;
+
+        /*4. Landing: 着陆阶段*/
+        case CH_StairPhase_Landing:
+            // 切换条件：持续一定时间后退出磕台阶模式
+            Landing_Time_cnt++;
+            if(Landing_Time_cnt > 500)
+            {
+                Landing_Time_cnt = 0;
+                GSTCH_Data.F_StairFinished = 1;
+            }
+
+            PID_SetKpKiKd(&GstCH_LegLen1PID, PID_LegLen_KpJump_Landing, 0.0f, PID_LegLen_KdJump_Landing);
+            PID_SetKpKiKd(&GstCH_LegLen2PID, PID_LegLen_KpJump_Landing, 0.0f, PID_LegLen_KdJump_Landing);
+
+            TD_Setr(&GstCH_LegLen1TD, TD_LegLen_rNorm);
+            TD_Setr(&GstCH_LegLen2TD, TD_LegLen_rNorm);
+
+            GST_RMCtrl.STCH_Default.LegLen1Des = LegLenMid;
+            GST_RMCtrl.STCH_Default.LegLen2Des = LegLenMid;
+            GST_RMCtrl.STCH_Default.Leg1FFForce = LegFFForce_Gravity_1;
+            GST_RMCtrl.STCH_Default.Leg2FFForce = LegFFForce_Gravity_2;
+
+            break;
+        default:
+            StairPhase = CH_StairPhase_Boost;
+            break;
+    }
+    
+    // ========== 更新全局标志位 ==========
+    // GSTCH_Data.F_StairFinished = (StairPhase == CH_StairPhase_Landing);
+
+    // ========== 通用控制量设置 ==========
+    ChModeControl_FollowMode_RCControl_MoveHandler(&GSTCH_Data, &GST_RMCtrl);
+
+    // 调用运动处理函数
+    CH_MotionUpdateAndProcess(GST_RMCtrl);
+}
+
 // #pragma endregion
 
 //* 模式控制最终执行函数。根据当前模式变量的变量值执行对应的模式具体功能实现函数
@@ -1783,6 +1938,8 @@ void ChassisModeControl_Ctrl(ChassisMode_EnumTypeDef ModeNow)
         case CHMode_RC_Jump:ChModeControl_RCJumpMode_Ctrl();                      break;
         /*键鼠跳跃模式*/
         case CHMode_KeyMouse_Jump:ChModeControl_KeyMouseJumpMode_Ctrl();          break;
+        /*RC磕台阶模式*/
+        case CHMode_RC_Stair:ChModeControl_RCStairMode_Ctrl();        break;
         /*键鼠磕台阶模式*/
         case CHMode_KeyMouse_Stair:ChModeControl_KeyMouseStairMode_Ctrl();        break;
 

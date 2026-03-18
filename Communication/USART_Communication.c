@@ -803,8 +803,6 @@ void UA6Rx_VisionDataProcess(void)
 {
     //TODO：之后设置局部变量，一大长串看着太乱了
 
-    float PitchVision = GST_Vision.AimAssistDataReceiveFrame.Pitch;
-    float YawVision   = GST_Vision.AimAssistDataReceiveFrame.Yaw;
     float PitchFB     = Pitch_Motor_Paras.PosFB;
     float YawFB       = Yaw_Motor_Paras.PosFB;
 
@@ -812,22 +810,23 @@ void UA6Rx_VisionDataProcess(void)
     {
         memcpy(&GST_Vision.AimAssistDataReceiveFrame, &UA6RxDMAbuf, UA6RxDMAbuf_LEN);
 		//视觉数据可能出现问题，因此将这一帧舍弃(老代码中有相关浮点数检测函数，此处暂未应用)
+
+        // 在memcpy之后读取新接收的数据
+        float PitchVision = GST_Vision.AimAssistDataReceiveFrame.Pitch;
+        float YawVision   = GST_Vision.AimAssistDataReceiveFrame.Yaw;
+
         //如果视觉反馈数据与云台实际反馈数据相差超过90度，则认为视觉数据有问题，将视觉数据置为当前云台反馈值
-        if(MyAbsf(PitchVision - PitchFB) > 90.0f || MyAbsf(YawVision - YawFB) > 90.0f)		  
+        if(MyAbsf(PitchVision - PitchFB) > 90.0f || MyAbsf(YawVision - YawFB) > 90.0f)
         {
 			GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot = FALSE;
             GST_Vision.AimAssistDataReceiveFrame.Pitch = PitchFB;
             GST_Vision.AimAssistDataReceiveFrame.Yaw   = YawFB;
         }
-        else
-        {
-            GST_Vision.AimAssistDataReceiveFrame.Yaw   = YawVision;
-            GST_Vision.AimAssistDataReceiveFrame.Pitch = PitchVision;
-        }
 
         //TODO：不知道什么逻辑
         // Vision_ID  = Vision_State_Now&(~Vision_Enable);
         // Vision_ID |= (GST_Vision.AimAssistDataReceiveFrame.FindTargetOrNot==true?Vision_Enable:Vision_Disable);
+        GST_SystemMonitor.USART6Rx_cnt++;
     }
 }
 

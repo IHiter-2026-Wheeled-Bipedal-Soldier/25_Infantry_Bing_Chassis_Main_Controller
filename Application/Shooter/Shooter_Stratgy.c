@@ -166,22 +166,22 @@ void SHCtrl_Debug(void)
 */
 void SHCtrl_RC(void)
 {
-    // SupplyStep = (1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
-    // /***********************前置处理**************************/
-    // /*状态切换*/
-    // if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
-    // {
-	// 	PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
-	// 	PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
-	// 	TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
-	// 	SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
-	// 	SupplyPellet_TD.x2 = 0.0f;
-    // }
+    SupplyStep = (1.0f)*360.0f/SupplyPellet_Num; //根据拨盘齿数计算步进角度(正负号由拨弹正方向决定，换车需修改)
+    /***********************前置处理**************************/
+    /*状态切换*/
+    if(GSTSH_Data.ShooterMode != GEMSH_Mode) //发射模式切换
+    {
+		PID_SetDes(&GstSH_SupplyPelletPosPID, GstSH_Paras.SupplyPellet_PosFB);
+		PID_SetDes(&GstSH_SupplyPelletVelPID, 0.0f);
+		TD_SetInput(&SupplyPellet_TD, GstSH_Paras.SupplyPellet_PosFB);
+		SupplyPellet_TD.x1 = GstSH_Paras.SupplyPellet_PosFB;
+		SupplyPellet_TD.x2 = 0.0f;
+    }
     
-    // FrictionWheel_RCCtrl();
+    FrictionWheel_RCCtrl();
 
-    // SupplyPellet_RCCtrl(); //拨弹电机闭环控制
-	// Bullet_Blocked_Protection(); //卡弹保护
+    SupplyPellet_RCCtrl(); //拨弹电机闭环控制
+	Bullet_Blocked_Protection(); //卡弹保护
 }
 
 /**

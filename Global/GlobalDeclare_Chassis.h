@@ -38,6 +38,7 @@ typedef enum {
     CHMode_RC_Follow,          //遥控器底盘模式：跟随（随云台转动）
     CHMode_RC_SitDown,         //遥控器底盘模式：坐下
     CHMode_RC_Jump,            //遥控器底盘模式：跳跃
+    CHMode_RC_Stair,           //遥控器底盘模式：磕台阶
 
     CHMode_KeyMouse_Standby,   //键鼠底盘模式：待机
     CHMode_KeyMouse_StandUp,   //键鼠底盘模式：起立

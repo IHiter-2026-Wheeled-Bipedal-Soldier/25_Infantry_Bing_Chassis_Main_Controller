@@ -405,7 +405,6 @@ void USART6_IRQHandler(void)
     if(__IsUSART6SingleRecOK())
     {
         UA6Rx_VisionDataProcess();
-        GST_SystemMonitor.USART6Rx_cnt++;
     }
     else
     {
