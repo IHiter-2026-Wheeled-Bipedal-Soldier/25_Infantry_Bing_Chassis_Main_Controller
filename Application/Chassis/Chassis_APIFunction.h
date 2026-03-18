@@ -58,6 +58,7 @@ float _Ch_FBData_LPF(float RawData, LPF_StructTypeDef* pLPF);
 uint8_t IsEnterManualCalibration(void);
 
 void CH_MotionUpdateAndProcess(RobotControl_StructTypeDef RMCtrl);
+void CH_MotionUpdateAndProcess_NoLQR(RobotControl_StructTypeDef RMCtrl);
 
 void ChModeControl_FreeMode_RCControl_MoveHandler(CHData_StructTypeDef* CHData, RobotControl_StructTypeDef* RMCtrl);
 void ChModeControl_FollowMode_RCControl_MoveHandler(CHData_StructTypeDef* CHData, RobotControl_StructTypeDef *RMCtrl);

@@ -161,8 +161,8 @@ void CH_FBData_Parse(void) {
  */
 //* 更新腿长目标值
 void CH_LegLenDes_Update(RobotControl_StructTypeDef RMCtrl) {
-    // 跳跃起跳阶段：直接使用阶跃目标，不走TD
-    if ((GEMCH_Mode == CHMode_RC_Jump) && (GSTCH_Data.F_JumpTakeoff == true) && (GSTCH_Data.F_JumpRetract == false)) {
+    // 跳跃起跳阶段和自救阶段：直接使用阶跃目标，不走TD
+    if ((GEMCH_Mode == CHMode_RC_Jump) && (GSTCH_Data.F_JumpTakeoff == true) && (GSTCH_Data.F_JumpRetract == false) && (GEMCH_Mode == CHMode_SelfSave)) {
         GSTCH_Data.LegLen1Des = RMCtrl.STCH_Default.LegLen1Des;
         GSTCH_Data.LegLen2Des = RMCtrl.STCH_Default.LegLen2Des;
         return;
@@ -336,36 +336,39 @@ void HM_DesDataUpdate(RobotControl_StructTypeDef RMCtrl)
     {
         GSTCH_HM1.TorqueDes  = RMCtrl.STCH_Force.HM1TDes; //左轮毂电机力矩目标值
         GSTCH_HM2.TorqueDes  = RMCtrl.STCH_Force.HM2TDes; //右轮毂电机力矩目标值
+        GSTCH_HM1.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM1.TorqueDes); //左轮毂电机电流目标值
+        GSTCH_HM2.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM2.TorqueDes); //右轮毂电机电流目标值
+			  return;
     }
-    /*否则采取默认的LQR计算控制*/
-    /*离地检测部分*/
-    if((GSTCH_Data.F_OffGround1 == true) && (GSTCH_Data.F_OffGround2 == true)) 
-    {
-        // 双腿离地：两侧轮毂都置零（可按需要改成安全策略）
-        GSTCH_HM1.TorqueDes  = 0.0f;
-        GSTCH_HM2.TorqueDes  = 0.0f;
-    }
-    else if(GSTCH_Data.F_OffGround1 == true) 
-    {
-        // 左腿离地
-        GSTCH_HM1.TorqueDes  = 0.0f;
-        GSTCH_HM2.TorqueDes  = + LQR_Get_uVector(&GstCH_LQRCal, 2-1) + GSTCH_HMTorqueComp.T_Comp_HM2;
-    }
-    else if(GSTCH_Data.F_OffGround2 == true) 
-    {
-        // 右腿离地
-        GSTCH_HM1.TorqueDes  = - LQR_Get_uVector(&GstCH_LQRCal, 1-1) + GSTCH_HMTorqueComp.T_Comp_HM1;
-        GSTCH_HM2.TorqueDes  = 0.0f;
-    }
-    else
-    {
-        // 正常落地
-        GSTCH_HM1.TorqueDes  = - LQR_Get_uVector(&GstCH_LQRCal, 1-1) + GSTCH_HMTorqueComp.T_Comp_HM1;
-        GSTCH_HM2.TorqueDes  = + LQR_Get_uVector(&GstCH_LQRCal, 2-1) + GSTCH_HMTorqueComp.T_Comp_HM2;
-    }
-    // 理论上讲轮毂电机应该是左轮为正、右轮为负，但是行星减速箱会反转方向，所以这里取反
-    GSTCH_HM1.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM1.TorqueDes); //左轮毂电机电流目标值
-    GSTCH_HM2.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM2.TorqueDes); //右轮毂电机电流目标值
+        /*否则采取默认的LQR计算控制*/
+        /*离地检测部分*/
+        if((GSTCH_Data.F_OffGround1 == true) && (GSTCH_Data.F_OffGround2 == true)) 
+        {
+            // 双腿离地：两侧轮毂都置零（可按需要改成安全策略）
+            GSTCH_HM1.TorqueDes  = 0.0f;
+            GSTCH_HM2.TorqueDes  = 0.0f;
+        }
+        else if(GSTCH_Data.F_OffGround1 == true) 
+        {
+            // 左腿离地
+            GSTCH_HM1.TorqueDes  = 0.0f;
+            GSTCH_HM2.TorqueDes  = + LQR_Get_uVector(&GstCH_LQRCal, 2-1) + GSTCH_HMTorqueComp.T_Comp_HM2;
+        }
+        else if(GSTCH_Data.F_OffGround2 == true) 
+        {
+            // 右腿离地
+            GSTCH_HM1.TorqueDes  = - LQR_Get_uVector(&GstCH_LQRCal, 1-1) + GSTCH_HMTorqueComp.T_Comp_HM1;
+            GSTCH_HM2.TorqueDes  = 0.0f;
+        }
+        else
+        {
+            // 正常落地
+            GSTCH_HM1.TorqueDes  = - LQR_Get_uVector(&GstCH_LQRCal, 1-1) + GSTCH_HMTorqueComp.T_Comp_HM1;
+            GSTCH_HM2.TorqueDes  = + LQR_Get_uVector(&GstCH_LQRCal, 2-1) + GSTCH_HMTorqueComp.T_Comp_HM2;
+        }
+        // 理论上讲轮毂电机应该是左轮为正、右轮为负，但是行星减速箱会反转方向，所以这里取反
+        GSTCH_HM1.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM1.TorqueDes); //左轮毂电机电流目标值
+        GSTCH_HM2.CurrentDes = _HM_DesData_TorqueToCurrent(GSTCH_HM2.TorqueDes); //右轮毂电机电流目标值
 }
 
 /**

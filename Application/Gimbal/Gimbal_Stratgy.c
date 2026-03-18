@@ -27,10 +27,10 @@ bool _Is_Gimbal_Debug(void)
     {return false;}
 }
 
-// 任意状态 -> Disabled: 底盘进入安全模式(手动安全或自动安全)
+// 任意状态 -> Disabled: 底盘进入安全模式(手动安全、自动安全或自救模式)
 bool _Is_Any_to_Disabled(void)
 {
-    if(GEMCH_Mode == CHMode_ManualSafe || GEMCH_Mode == CHMode_AutoSafe)
+    if(GEMCH_Mode == CHMode_ManualSafe || GEMCH_Mode == CHMode_AutoSafe || GEMCH_Mode == CHMode_SelfSave)
     {return true;}
     else
     {return false;}

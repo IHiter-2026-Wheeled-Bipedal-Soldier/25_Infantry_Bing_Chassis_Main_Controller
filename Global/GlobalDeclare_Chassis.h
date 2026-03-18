@@ -532,6 +532,10 @@ extern float SelfSave_CE_StopLegLenTH;      // CE快速伸腿停机阈值，单�
 extern float SelfSave_CE_ExtendTarget;      // CE快速伸腿目标，单位m
 extern float SelfSave_LegLenRetractStep;    // SelfSave慢收腿步进，单位m
 extern float SelfSave_LegLenExtendStep;     // SelfSave快伸腿步进，单位m
+extern float SelfSave_LegLenShortEnterTH;   // SelfSave短腿长进入阈值（滞回上沿），单位m
+extern float SelfSave_LegLenShortExitTH;    // SelfSave短腿长退出阈值（滞回下沿），单位m
+extern float SelfSave_StandbyDebounceTime;  // SelfSave退出Standby去抖时间，单位ms
+extern float SelfSave_CE_ResistJointTorqueTH; // SelfSave收伸腿受阻扭矩阈值，单位Nm
 
 extern const float m_w;
 extern const float R_l;

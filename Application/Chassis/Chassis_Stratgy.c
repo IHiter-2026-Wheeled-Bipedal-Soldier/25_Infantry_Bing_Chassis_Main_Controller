@@ -14,13 +14,15 @@
 #include "Chassis_APIFunction.h"
 #include "General_AuxiliaryFunc.h"
 #include "GlobalDeclare_Chassis.h"
+#include "GlobalDeclare_Gimbal.h"
+#include "GlobalDeclare_Shooter.h"
 #include "TIM_Config.h"
 #include "Chassis_Stratgy.h"
 
 typedef enum {
     CH_SelfSavePosture_Unknown = 0,    // 未命中任何倒地姿态判据
     CH_SelfSavePosture_Laying,         // 平躺类姿态：满足倒地触发但不满足Planking/Sideways
-    CH_SelfSavePosture_Planking,       // Sit/Plank合并姿态：俯仰角绝对值较大
+    CH_SelfSavePosture_Planking,       // 平板支撑姿态：俯仰角绝对值较大
     CH_SelfSavePosture_Sideways,       // 侧躺姿态：横滚角绝对值较大
 } ChassisSelfSavePosture_EnumTypeDef;  // SelfSave倒地姿态分类枚举
 
@@ -28,6 +30,7 @@ typedef enum {
     CH_SelfSavePhase_IdleStop = 0,     // 全停等待阶段
     CH_SelfSavePhase_CE_Retract,       // Controlled Extraction（控制权夺回）缓慢收腿阶段
     CH_SelfSavePhase_CE_Extend,        // Controlled Extraction（控制权夺回）快速伸腿阶段
+    CH_SelfSavePhase_CE_Hold,          // Controlled Extraction保持阶段（锁定当前腿长、等待下一次外八触发）
     CH_SelfSavePhase_Plank_Retract,    // Plank状态慢收腿阶段
     CH_SelfSavePhase_Hold,             // 全停保持阶段
 } ChassisSelfSavePhase_EnumTypeDef;    // SelfSave子状态机阶段枚举
@@ -72,21 +75,15 @@ static bool _Is_RC_BothJoyStickInDeadZone(void)
 
 /**
  * @brief  进入SelfSave模式判定
- * @note   采用姿态绝对值阈值判定：俯仰角或横滚角任一超限即判定需要自救。
- *         该函数用于模式选择层，优先级高于普通运动模式流转。
+ * @note   手动触发判据：右拨杆在下位。
+ *         该函数只负责输入判据，不负责模式来源过滤。
  * @param  无
  * @retval true  需要进入SelfSave
  * @retval false 不需要进入SelfSave
  */
 static bool _Is_Normal_To_SelfSave(void)
 {
-    float PitchAbs = MyAbsf(GSTCH_Data.PitchAngleFB);
-    float RollAbs = MyAbsf(GSTCH_Data.RollAngleFB);
-
-    if((PitchAbs >= SelfSave_PitchFallTH) || (RollAbs >= SelfSave_RollFallTH))
-    {return true;}
-
-    return false;
+    return IsRightLevelDown();
 }
 
 /**
@@ -99,14 +96,40 @@ static bool _Is_Normal_To_SelfSave(void)
  */
 static bool _Is_SelfSave_To_RCStandby(void)
 {
+    static bool S_F_LegLenShort = false;
+    static uint32_t S_ExitCondStartTime = 0;
+
     float PitchAbs = MyAbsf(GSTCH_Data.PitchAngleFB);
     float RollAbs = MyAbsf(GSTCH_Data.RollAngleFB);
     float LegLenAvg = (GSTCH_Data.LegLen1FB + GSTCH_Data.LegLen2FB) * 0.5f;
 
+    if(GEMCH_ModePre != CHMode_SelfSave)
+    {
+        S_F_LegLenShort = false;
+        S_ExitCondStartTime = 0;
+    }
+
+    if(LegLenAvg <= SelfSave_LegLenShortExitTH)
+    {S_F_LegLenShort = true;}
+    else if(LegLenAvg >= SelfSave_LegLenShortEnterTH)
+    {S_F_LegLenShort = false;}
+
     if((PitchAbs <= SelfSave_PitchFlatTH) &&
        (RollAbs <= SelfSave_RollFlatTH) &&
-       (LegLenAvg <= SelfSave_LegLenShortTH))
-    {return true;}
+       (S_F_LegLenShort == true))
+    {
+        uint32_t TimeNow = RunTimeGet();
+
+        if(S_ExitCondStartTime == 0)
+        {S_ExitCondStartTime = TimeNow;}
+
+        if((TimeNow - S_ExitCondStartTime) >= (uint32_t)SelfSave_StandbyDebounceTime)
+        {return true;}
+    }
+    else
+    {
+        S_ExitCondStartTime = 0;
+    }
 
     return false;
 }
@@ -151,6 +174,69 @@ static void _CH_SelfSave_ForceStopHubOutput(void)
 }
 
 /**
+ * @brief  强制关闭关节电机输出
+ * @note   覆盖四个关节扭矩输出通道并强制置零。
+ * @param  无
+ * @retval 无
+ */
+static void _CH_SelfSave_ForceStopJointOutput(void)
+{
+    GST_RMCtrl.STCH_Force.F_JMTorque_UserSetEnable = true;
+    GST_RMCtrl.STCH_Force.JM1TDes = 0.0f;
+    GST_RMCtrl.STCH_Force.JM2TDes = 0.0f;
+    GST_RMCtrl.STCH_Force.JM3TDes = 0.0f;
+    GST_RMCtrl.STCH_Force.JM4TDes = 0.0f;
+
+    GSTCH_JM1.TorqueDes = 0.0f;
+    GSTCH_JM2.TorqueDes = 0.0f;
+    GSTCH_JM3.TorqueDes = 0.0f;
+    GSTCH_JM4.TorqueDes = 0.0f;
+}
+
+/**
+ * @brief  强制关闭云台与发射输出
+ * @note   该函数直接把云台/发射模式锁到安全态，并把发送通道电流置零。
+ * @param  无
+ * @retval 无
+ */
+static void _CH_SelfSave_ForceStopUpperOutput(void)
+{
+    GEMGM_Mode = GMMode_Disabled;
+    GSTGM_Data.GimbalMode = GMMode_Disabled;
+
+    GEMSH_Mode = SHMode_Safe;
+    GSTSH_Data.ShooterMode = SHMode_Safe;
+    ShooterSafetyLocked = true;
+
+    Pitch_Motor_Paras.Pitch_Current = 0.0f;
+    Yaw_Motor_Paras.Yaw_Current = 0.0f;
+    smcL.fpU = 0.0f;
+    smcR.fpU = 0.0f;
+    GstSH_Paras.SupplyPellet_Current = 0.0f;
+    GstSH_SupplyPelletVelPID.U = 0.0f;
+}
+
+/**
+ * @brief  SelfSave收伸腿受阻检测（关节扭矩）
+ * @note   使用左右两条腿前后关节扭矩绝对值求和做受阻判据，
+ *         任一侧超过阈值即认为遇到机械限位或外部阻挡。
+ * @param  无
+ * @retval true  受阻扭矩过大
+ * @retval false 扭矩正常
+ */
+static bool _CH_SelfSave_IsJointResistanceTooHigh(void)
+{
+    float LeftTorqueAbsSum = MyAbsf(GSTCH_JM1.TorqueFB) + MyAbsf(GSTCH_JM3.TorqueFB);
+    float RightTorqueAbsSum = MyAbsf(GSTCH_JM2.TorqueFB) + MyAbsf(GSTCH_JM4.TorqueFB);
+
+    if((LeftTorqueAbsSum >= SelfSave_CE_ResistJointTorqueTH) ||
+       (RightTorqueAbsSum >= SelfSave_CE_ResistJointTorqueTH))
+    {return true;}
+
+    return false;
+}
+
+/**
  * @brief  SelfSave全停输出（关节+轮毂）
  * @note   该函数提供“AutoSafe等效”输出清零能力：
  *         1) 清空底盘目标与控制量
@@ -165,11 +251,8 @@ static void _CH_SelfSave_StopAllOutput(void)
     Chassis_DisFBClear();
     Chassis_RobotCtrlDataReset();
     _CH_SelfSave_ForceStopHubOutput();
-
-    JumpPhase = CH_JumpPhase_Wait;
-    GSTCH_Data.F_JumpTakeoff = false;
-    GSTCH_Data.F_JumpRetract = false;
-    GSTCH_Data.F_JumpLanding = false;
+    _CH_SelfSave_ForceStopJointOutput();
+    _CH_SelfSave_ForceStopUpperOutput();
 }
 
 
@@ -445,9 +528,6 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
     if(_Is_Normal_To_AutoSafe(ST_ModeChoosePara))
     {return CHMode_AutoSafe;}
 
-    if(_Is_Normal_To_SelfSave())
-    {return CHMode_SelfSave;}
-
     /* ========================================================== */
     /*   Layer 2: 状态机流转 (Switch-Case)                        */
     /* ========================================================== */
@@ -463,7 +543,8 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
             if(_Is_AutoSafe_To_ManualSafe(ST_ModeChoosePara))               NextMode = CHMode_ManualSafe;
             break;
         case CHMode_RC_Standby:
-            if(_Is_RCStandby_To_RCStandUp())                                NextMode = CHMode_RC_StandUp;
+            if(_Is_Normal_To_SelfSave())                                    NextMode = CHMode_SelfSave;
+            else if(_Is_RCStandby_To_RCStandUp())                           NextMode = CHMode_RC_StandUp;
             break;
         case CHMode_KeyMouse_Standby:
             if(_Is_KeyMouseStandby_To_KeyMouseStandUp())                    NextMode = CHMode_KeyMouse_StandUp;
@@ -472,10 +553,12 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
 
         /* --- 启动与关闭 --- */
         case CHMode_RC_StandUp:
-            if(_Is_RCStandUp_To_RCFree(ST_ModeChoosePara))                  NextMode = CHMode_RC_Free;
+            if(_Is_Normal_To_SelfSave())                                    NextMode = CHMode_SelfSave;
+            else if(_Is_RCStandUp_To_RCFree(ST_ModeChoosePara))             NextMode = CHMode_RC_Free;
             break;
         case CHMode_RC_SitDown:
-            if(_Is_RCSitDown_To_RCStandby(ST_ModeChoosePara))               NextMode = CHMode_RC_Standby;
+            if(_Is_Normal_To_SelfSave())                                    NextMode = CHMode_SelfSave;
+            else if(_Is_RCSitDown_To_RCStandby(ST_ModeChoosePara))          NextMode = CHMode_RC_Standby;
             break;
         case CHMode_KeyMouse_StandUp:
             if(_Is_KeyMouseStandUp_To_KeyMouseFollow(ST_ModeChoosePara))    NextMode = CHMode_KeyMouse_Follow;
@@ -488,14 +571,16 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
         /* --- 核心运动模式 --- */
         case CHMode_RC_Free:
             LastActiveMode = CHMode_RC_Free;         // 持续更新记忆：我在RCFree
-            if(_Is_RCFree_To_RCSitDown())                                   NextMode = CHMode_RC_SitDown;
+            if(_Is_Normal_To_SelfSave())                                    NextMode = CHMode_SelfSave;
+            else if(_Is_RCFree_To_RCSitDown())                              NextMode = CHMode_RC_SitDown;
             else if(_Is_RCFree_To_RCFollow())                               NextMode = CHMode_RC_Follow;
             else if(_Is_RC_Jump())                                          NextMode = CHMode_RC_Jump;
             else if(_Is_To_OffGround(ST_ModeChoosePara))                    NextMode = CHMode_OffGround;
             break;
         case CHMode_RC_Follow:
             LastActiveMode = CHMode_RC_Follow;       // 持续更新记忆：我在RCFollow
-            if(_Is_RCFollow_To_RCFree())                                    NextMode = CHMode_RC_Free;
+            if(_Is_Normal_To_SelfSave())                                    NextMode = CHMode_SelfSave;
+            else if(_Is_RCFollow_To_RCFree())                               NextMode = CHMode_RC_Free;
             else if(_Is_RC_Jump())                                          NextMode = CHMode_RC_Jump;
             else if(_Is_To_OffGround(ST_ModeChoosePara))                    NextMode = CHMode_OffGround;
             break;
@@ -514,8 +599,9 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
 
         /* --- 特殊状态  --- */
         case CHMode_RC_Jump:
+            if(_Is_Normal_To_SelfSave())                                    NextMode = CHMode_SelfSave;
             // 检测到落地 -> 回到 LastActiveMode (RCFree / RCFollow / KeyMouseFollow)
-            if(GSTCH_Data.F_JumpLanding && _Is_To_Landed(ST_ModeChoosePara))NextMode = LastActiveMode; 
+            else if(GSTCH_Data.F_JumpLanding && _Is_To_Landed(ST_ModeChoosePara)) NextMode = LastActiveMode;
             break;
         case CHMode_KeyMouse_Jump:
             // 检测到落地 -> 回到 LastActiveMode (RCFree / RCFollow / KeyMouseFollow)
@@ -1682,35 +1768,47 @@ void ChModeControl_RCJumpMode_Ctrl(void)
     CH_MotionUpdateAndProcess(GST_RMCtrl);
 }
 
+/*当前SelfSave子阶段*/
+ChassisSelfSavePhase_EnumTypeDef S_SelfSavePhase = CH_SelfSavePhase_IdleStop;
+/*当前姿态分类结果*/
+ChassisSelfSavePosture_EnumTypeDef PostureNow;
+
 /**
  * @brief  自救模式控制函数
- * @note   进入后默认全停，外八手势+回中触发一次Controlled Extraction；
- *         仅在未进入Planking流程前允许重复外八再次触发。
+ * @note   进入后默认全停；只有右拨杆先到下位再回到上位后，
+ *         才解锁现有姿态检测与恢复逻辑（外八触发CE等）。
+ *         若右拨杆未回上，输出效果保持为AutoSafe等效全停。
  *         状态机阶段如下：
  *         1) IdleStop：默认全停，等待外八触发
  *         2) CE_Retract：缓慢收腿到0.110附近
- *         3) CE_Extend：快速伸腿，腿长达到0.380后停止
- *         4) SitPlank_Retract：Sit/Plank合并分支慢收腿到短腿长
- *         5) Hold：全停保持
+ *         3) CE_Hold：锁定当前腿长、轮毂置零，等待下一次外八触发
+ *         4) CE_Extend：快速伸腿，达到目标或受阻后回CE_Hold
+ *         5) Plank_Retract：Sit/Plank合并分支慢收腿到短腿长
+ *         6) Hold：全停保持
  * @param  无
  * @retval 无
  */
 void ChModeControl_SelfSaveMode_Ctrl(void)
 {
-    /*当前SelfSave子阶段*/
-    static ChassisSelfSavePhase_EnumTypeDef S_SelfSavePhase = CH_SelfSavePhase_IdleStop;
+    // /*当前SelfSave子阶段*/
+    // static ChassisSelfSavePhase_EnumTypeDef S_SelfSavePhase = CH_SelfSavePhase_IdleStop;
+    /*SelfSave进入解锁：右拨杆先下后上才允许进入后续子状态*/
+    // 进入selfsave但没有解锁
+    static bool S_F_SelfSaveEntryDownSeen = false;
+    // 进入selfsave且解锁完成，允许姿态检测与外八触发逻辑生效
+    static bool S_F_SelfSaveUnlocked = false;
     /*外八上膛标志：检测到外八后置true，回中释放后清零*/
     static bool S_F_OuterEightArmed = false;
+    /*CE触发阶段记忆：false表示下一次触发进入收腿，true表示下一次触发进入伸腿*/
+    static bool S_F_CEReadyToExtend = false;
     /*Planking锁：一旦置true，本次SelfSave会话内外八逻辑永久失效*/
     static bool S_F_PlankLocked = false;
     /*左右腿内部指令缓存：用于StepChangeValue平滑改变腿长目标*/
     static float S_LegLen1Cmd = 0.0f;
     static float S_LegLen2Cmd = 0.0f;
-
-    /*当前姿态分类结果*/
-    ChassisSelfSavePosture_EnumTypeDef PostureNow = _CH_SelfSavePostureDetect();
-    /*当前平均腿长，用于阶段切换判据*/
-    float LegLenAvg = (GSTCH_Data.LegLen1FB + GSTCH_Data.LegLen2FB) * 0.5f;
+    /*CE_Hold锁定腿长目标缓存*/
+    static float S_CEHoldLegLen1Lock = 0.0f;
+    static float S_CEHoldLegLen2Lock = 0.0f;
 
     // ================================================
     // 阶段0：模式初次进入时的状态机初始化
@@ -1719,14 +1817,42 @@ void ChModeControl_SelfSaveMode_Ctrl(void)
     if(GEMCH_ModePre != CHMode_SelfSave)
     {
         S_SelfSavePhase = CH_SelfSavePhase_IdleStop;
+        S_F_SelfSaveEntryDownSeen = false;
+        S_F_SelfSaveUnlocked = false;
         S_F_OuterEightArmed = false;
+        S_F_CEReadyToExtend = false;
         S_F_PlankLocked = false;
         S_LegLen1Cmd = GSTCH_Data.LegLen1FB;
         S_LegLen2Cmd = GSTCH_Data.LegLen2FB;
+        S_CEHoldLegLen1Lock = GSTCH_Data.LegLen1FB;
+        S_CEHoldLegLen2Lock = GSTCH_Data.LegLen2FB;
     }
 
     // ================================================
-    // 阶段1：姿态锁定逻辑
+    // 阶段1：SelfSave手动解锁门控
+    // 目标：仅在“右拨杆先下后上”后允许进入后续子状态。
+    // ================================================
+    if(IsRightLevelDown())
+    {S_F_SelfSaveEntryDownSeen = true;}
+
+    if(S_F_SelfSaveEntryDownSeen && IsRightLevelUp())
+    {S_F_SelfSaveUnlocked = true;}
+
+    if(S_F_SelfSaveUnlocked == false)
+    {
+        S_SelfSavePhase = CH_SelfSavePhase_IdleStop;
+        _CH_SelfSave_StopAllOutput();
+        return;
+    }
+
+    /*当前姿态分类结果*/
+    // ChassisSelfSavePosture_EnumTypeDef PostureNow = _CH_SelfSavePostureDetect();
+    PostureNow = _CH_SelfSavePostureDetect();
+    /*当前平均腿长，用于阶段切换判据*/
+    float LegLenAvg = (GSTCH_Data.LegLen1FB + GSTCH_Data.LegLen2FB) * 0.5f;
+
+    // ================================================
+    // 阶段2：姿态锁定逻辑
     // 目标：一旦进入Planking路径，禁止外八触发任何动作。
     // ================================================
     // 一旦进入Planking流程，本次SelfSave会话内外八逻辑永久失效。
@@ -1739,7 +1865,7 @@ void ChModeControl_SelfSaveMode_Ctrl(void)
     }
 
     // ================================================
-    // 阶段2：外八触发链路（仅未锁定时生效）
+    // 阶段3：外八触发链路（仅未锁定时生效）
     // 目标：严格执行“外八上膛 -> 回中释放 -> 触发一次CE”。
     // ================================================
     if(S_F_PlankLocked == false)
@@ -1750,9 +1876,13 @@ void ChModeControl_SelfSaveMode_Ctrl(void)
 
         // 上膛后只有回到摇杆死区才触发一次CE。
         if(S_F_OuterEightArmed && _Is_RC_BothJoyStickInDeadZone() &&
-           ((S_SelfSavePhase == CH_SelfSavePhase_IdleStop) || (S_SelfSavePhase == CH_SelfSavePhase_Hold)))
+           ((S_SelfSavePhase == CH_SelfSavePhase_IdleStop) || (S_SelfSavePhase == CH_SelfSavePhase_CE_Hold)))
         {
-            S_SelfSavePhase = CH_SelfSavePhase_CE_Retract;
+            if(S_F_CEReadyToExtend == false)
+            {S_SelfSavePhase = CH_SelfSavePhase_CE_Retract;}
+            else
+            {S_SelfSavePhase = CH_SelfSavePhase_CE_Extend;}
+
             S_F_OuterEightArmed = false;
             S_LegLen1Cmd = GSTCH_Data.LegLen1FB;
             S_LegLen2Cmd = GSTCH_Data.LegLen2FB;
@@ -1760,7 +1890,7 @@ void ChModeControl_SelfSaveMode_Ctrl(void)
     }
 
     // ================================================
-    // 阶段3：SelfSave子状态机主执行
+    // 阶段4：SelfSave子状态机主执行
     // 目标：根据当前阶段执行对应控制策略。
     // ================================================
     switch (S_SelfSavePhase)
@@ -1796,13 +1926,18 @@ void ChModeControl_SelfSaveMode_Ctrl(void)
             _CH_SelfSave_ForceStopHubOutput();
             CH_MotionUpdateAndProcess(GST_RMCtrl);
 
-            /*满足压缩误差阈值后切到快速伸腿阶段*/
-            if(RetractErr < SelfSave_CE_RetractErrTH)
-            {S_SelfSavePhase = CH_SelfSavePhase_CE_Extend;}
+            /*满足压缩误差阈值或受阻后结束本次收腿，进入CE_Hold等待下一次触发*/
+            if((RetractErr < SelfSave_CE_RetractErrTH) || _CH_SelfSave_IsJointResistanceTooHigh())
+            {
+                S_CEHoldLegLen1Lock = GSTCH_Data.LegLen1FB;
+                S_CEHoldLegLen2Lock = GSTCH_Data.LegLen2FB;
+                S_F_CEReadyToExtend = true;
+                S_SelfSavePhase = CH_SelfSavePhase_CE_Hold;
+            }
             break;
         }
 
-        // CE_Extend：快速伸腿，达到0.380后立即停机进入Hold。
+        // CE_Extend：快速伸腿，达到阈值或受阻后进入CE_Hold等待下一次触发。
         case CH_SelfSavePhase_CE_Extend:
             PID_SetKpKiKd(&GstCH_LegLen1PID, PID_LegLen_KpJump_Takeoff, 0.0f, PID_LegLen_KdJump_Takeoff);
             PID_SetKpKiKd(&GstCH_LegLen2PID, PID_LegLen_KpJump_Takeoff, 0.0f, PID_LegLen_KdJump_Takeoff);
@@ -1822,9 +1957,34 @@ void ChModeControl_SelfSaveMode_Ctrl(void)
             _CH_SelfSave_ForceStopHubOutput();
             CH_MotionUpdateAndProcess(GST_RMCtrl);
 
-            /*腿长达到停机阈值后结束CE*/
-            if(LegLenAvg >= SelfSave_CE_StopLegLenTH)
-            {S_SelfSavePhase = CH_SelfSavePhase_Hold;}
+            /*腿长达到停机阈值或受阻后结束CE*/
+            if((LegLenAvg >= SelfSave_CE_StopLegLenTH) || _CH_SelfSave_IsJointResistanceTooHigh())
+            {
+                S_CEHoldLegLen1Lock = GSTCH_Data.LegLen1FB;
+                S_CEHoldLegLen2Lock = GSTCH_Data.LegLen2FB;
+                S_F_CEReadyToExtend = false;
+                S_SelfSavePhase = CH_SelfSavePhase_CE_Hold;
+            }
+            break;
+
+        // CE_Hold：锁定当前腿长目标，仅切断轮毂输出，等待下一次外八触发。
+        case CH_SelfSavePhase_CE_Hold:
+            PID_SetKpKiKd(&GstCH_LegLen1PID, PID_LegLen_KpNorm, 0.0f, PID_LegLen_KdNorm);
+            PID_SetKpKiKd(&GstCH_LegLen2PID, PID_LegLen_KpNorm, 0.0f, PID_LegLen_KdNorm);
+            TD_Setr(&GstCH_LegLen1TD, TD_LegLen_rNorm);
+            TD_Setr(&GstCH_LegLen2TD, TD_LegLen_rNorm);
+
+            GST_RMCtrl.STCH_Default.DisDes = GSTCH_Data.DisFB;
+            GST_RMCtrl.STCH_Default.VelDes = 0.0f;
+            GST_RMCtrl.STCH_Default.YawDeltaDes = 0.0f;
+            GST_RMCtrl.STCH_Default.YawAngleVelDes = 0.0f;
+            GST_RMCtrl.STCH_Default.LegLen1Des = S_CEHoldLegLen1Lock;
+            GST_RMCtrl.STCH_Default.LegLen2Des = S_CEHoldLegLen2Lock;
+            GST_RMCtrl.STCH_Default.Leg1FFForce = LegFFForce_Gravity_1;
+            GST_RMCtrl.STCH_Default.Leg2FFForce = LegFFForce_Gravity_2;
+
+            _CH_SelfSave_ForceStopHubOutput();
+            CH_MotionUpdateAndProcess(GST_RMCtrl);
             break;
 
         // Plank_Retract：只允许自动短腿长，不响应外八。
