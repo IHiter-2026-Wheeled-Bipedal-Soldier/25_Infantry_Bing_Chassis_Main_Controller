@@ -562,7 +562,7 @@ void GM_Ctrl_KeyMouse(void)
     if(MyAbsf(PitchIncrement) > 0)
     {
         PitchIncrement = Limit(PitchIncrement, -0.012f, 0.012f); //对Pitch增量进行限幅，防止输入错误导致云台旋转过快
-        Pitch_Motor_Paras.PosDes -= KeyMouse_SST_Pitch * PitchIncrement;
+        Pitch_Motor_Paras.PosDes += KeyMouse_SST_Pitch * PitchIncrement;
     }
     //Yaw目标值赋值
     if(MyAbsf(YawIncrement) > 0)

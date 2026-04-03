@@ -72,9 +72,8 @@ const float      GGM_TaskTime   = (float)GGM_TaskPeriod/(float)configTICK_RATE_H
 //#endregion
 
 //#region /****云台角度限制相关****************************************/
-float Gravity_FeedForward = 10000.0f;    //云台Pitch重力前馈
+float Gravity_FeedForward = 6000.0f;    //云台Pitch重力前馈
 //#endregion
-
 
 //#region /****云台角度限制相关****************************************/
 float PitchMax = +25.0f;    //云台Pitch最大值（IMU角度），单位度

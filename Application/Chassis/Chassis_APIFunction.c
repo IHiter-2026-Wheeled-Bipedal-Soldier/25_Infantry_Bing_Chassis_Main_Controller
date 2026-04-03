@@ -1492,8 +1492,8 @@ bool ChModeControl_FreeMode_RCControl_IsEnterTopMode(CHData_StructTypeDef CHData
 }
 
 /**
-  * @brief  KeyMouse控制Follow模式下，判断陀螺模式进入函数
-  * @note   在Follow模式下，根据摇杆输入判断是否需要进入陀螺模式
+  * @brief  KM控制Follow模式下，判断陀螺模式进入函数
+  * @note   在Follow模式下，根据按键 Shift 输入判断是否需要进入陀螺模式
   * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体变量
   * @retval true：进入陀螺模式
   *         false：不进入陀螺模式
@@ -1552,7 +1552,7 @@ void ChModeControl_FreeMode_RCControl_TopHandler(CHData_StructTypeDef* CHData, R
 }
 
 /**
-  * @brief  KeyMouse控制Follow模式下，小陀螺陀螺模式处理函数
+  * @brief  KM控制Follow模式下，小陀螺陀螺模式处理函数
   * @note   在Follow模式下，陀螺模式的主要处理函数
   *         包括关闭位移控制和速度控制、获取Yaw角速度目标值等
   * @param  CHData：CHData_StructTypeDef类型，底盘数据结构体指针
@@ -1584,10 +1584,9 @@ void ChModeControl_FollowMode_KeyMouseControl_TopHandler(CHData_StructTypeDef* C
             TopAngleVelDes_Next = StepChangeValue(GST_RMCtrl.STCH_Default.YawAngleVelDes , KeyMouseTopMode_TopStill_AngleVelDesMax , KeyMouseTopMode_TopStill_AngleVelAddStep);
         }
     }
-
     /*否则缓慢退出小陀螺*/
     else
-    {TopAngleVelDes_Next = StepChangeValue(TopAngleVelDes_Pre , 0.0f , RCTopMode_TopAngleVelBrakeStep);}
+    {TopAngleVelDes_Next = StepChangeValue(TopAngleVelDes_Pre , 0.0f , KeyMouseTopMode_Top_AngleVelBrakeStep);}
 
     /*赋值给实际控制的结构体成员*/
     RMCtrl->STCH_Default.YawDeltaDes = 0.0f; //Follow小陀螺模式下不进行偏航角增量控制，YawDeltaDes设为0

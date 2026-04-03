@@ -467,11 +467,10 @@ extern float RCTopMode_ExitAngleVelTH;
 
 extern float KeyMouseTopMode_ExitAngleVelTH;
 extern float KeyMouseTopMode_TopStill_AngleVelDesMax;
-extern float KeyMouseTopMode_TopStill_AngleVelAddStep;      
-extern float KeyMouseTopMode_TopStill_AngleVelBrakeStep;    
+extern float KeyMouseTopMode_TopStill_AngleVelAddStep;
 extern float KeyMouseTopMode_TopMoving_AngleVelDesMax;
-extern float KeyMouseTopMode_TopMoving_AngleVelAddStep;     
-extern float KeyMouseTopMode_TopMoving_AngleVelBrakeStep;   
+extern float KeyMouseTopMode_TopMoving_AngleVelAddStep;
+extern float KeyMouseTopMode_Top_AngleVelBrakeStep;
 
 extern float ChMove_Top_VelDesMax;
 extern float ChMove_Top_Acc_Moving;

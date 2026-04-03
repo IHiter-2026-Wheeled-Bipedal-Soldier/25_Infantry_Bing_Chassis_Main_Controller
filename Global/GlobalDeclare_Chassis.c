@@ -310,10 +310,9 @@ float KeyMouseTopMode_ExitAngleVelTH = 180.0f;  // 允许退出小陀螺模式�
 
 float KeyMouseTopMode_TopStill_AngleVelDesMax = 14.0f * R2A;   // 静止小陀螺模式下的最大转向偏航角速度目标值，单位deg/s
 float KeyMouseTopMode_TopStill_AngleVelAddStep = 0.4f;         // 静止小陀螺模式下，角速度步进值，单位deg
-float KeyMouseTopMode_TopStill_AngleVelBrakeStep = 1.0f;       // 静止小陀螺模式下，角速度刹车步进值，单位deg
 float KeyMouseTopMode_TopMoving_AngleVelDesMax = 8.0f * R2A;  // 平移小陀螺模式下的最大转向偏航角速度目标值，单位deg/s
 float KeyMouseTopMode_TopMoving_AngleVelAddStep = 0.4f;        // 平移小陀螺模式下，角速度步进值，单位deg
-float KeyMouseTopMode_TopMoving_AngleVelBrakeStep = 1.0f;      // 平移小陀螺模式下，角速度刹车步进值，单位deg
+float KeyMouseTopMode_Top_AngleVelBrakeStep = 1.0f;       // 静止或平移小陀螺模式下，角速度刹车步进值，单位deg
 
 float ChMove_Top_VelDesMax = 1.0f;   // 速度最大值，单位m/s
 float ChMove_Top_Acc_Moving = 1.0f;  // 运动加速度（理论值，实际上会更小一些）
@@ -414,7 +413,7 @@ PID_StructTypeDef GstCH_RollCompPID = {
 PID_StructTypeDef GstCH_YawAnglePID = {
     PID_YawAngle_Kp,    PID_YawAngle_Ki,    PID_YawAngle_Kd,
     PID_YawAngle_UMax,  PID_YawAngle_UpMax, PID_YawAngle_UiMax,
-    PID_YawAngle_UdMax, PID_YawAngle_AddMax};  // 左腿长度PID结构体，以m米为单位
+    PID_YawAngle_UdMax, PID_YawAngle_AddMax};  // 底盘Follow模式Yaw角度PID结构体，以度为单位
 // #pragma endregion
 
 // #pragma region

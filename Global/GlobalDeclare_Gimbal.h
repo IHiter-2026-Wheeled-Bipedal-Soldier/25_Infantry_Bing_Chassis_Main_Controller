@@ -174,19 +174,19 @@ typedef struct
 //正常模式（Free/Follow）
 
 // (Patience调的结果，后续可以继续优化)
-#define PID_PitchPos_Kp_Norm       80.0f         //Pitch位置环PID：比例系数Kp
-#define PID_PitchPos_Ki_Norm       0.08f         //Pitch位置环PID：积分系数Ki
-#define PID_PitchPos_Kd_Norm       600.0f        //Pitch位置环PID：微分系数Kd
-#define PID_PitchVel_Kp_Norm       120.0f        //Pitch速度环PID：比例系数Kp
+#define PID_PitchPos_Kp_Norm       50.0f         //Pitch位置环PID：比例系数Kp
+#define PID_PitchPos_Ki_Norm       0.0f         //Pitch位置环PID：积分系数Ki
+#define PID_PitchPos_Kd_Norm       30.0f        //Pitch位置环PID：微分系数Kd
+#define PID_PitchVel_Kp_Norm       150.0f        //Pitch速度环PID：比例系数Kp
 #define PID_PitchVel_Ki_Norm       0.0f          //Pitch速度环PID：积分系数Ki
-#define PID_PitchVel_Kd_Norm       500.0f        //Pitch速度环PID：微分系数Kd
+#define PID_PitchVel_Kd_Norm       300.0f        //Pitch速度环PID：微分系数Kd
 
-#define PID_YawPos_Kp_Norm         70.0f         //Yaw位置环PID：比例系数Kp
+#define PID_YawPos_Kp_Norm         45.0f         //Yaw位置环PID：比例系数Kp
 #define PID_YawPos_Ki_Norm         0.0f          //Yaw位置环PID：积分系数Ki
-#define PID_YawPos_Kd_Norm         1400.0f       //Yaw位置环PID：微分系数Kd
-#define PID_YawVel_Kp_Norm         150.0f        //Yaw速度环PID：比例系数Kp
+#define PID_YawPos_Kd_Norm         500.0f       //Yaw位置环PID：微分系数Kd
+#define PID_YawVel_Kp_Norm         350.0f        //Yaw速度环PID：比例系数Kp
 #define PID_YawVel_Ki_Norm         0.0f          //Yaw速度环PID：积分系数Ki
-#define PID_YawVel_Kd_Norm         1500.0f       //Yaw速度环PID：微分系数Kd
+#define PID_YawVel_Kd_Norm         500.0f       //Yaw速度环PID：微分系数Kd
 
 //辅瞄模式（AutoAim）(Patience调的结果，后续可以继续优化)
 #define PID_PitchPos_Kp_AutoAim    0.0f        //Pitch位置环PID：比例系数Kp

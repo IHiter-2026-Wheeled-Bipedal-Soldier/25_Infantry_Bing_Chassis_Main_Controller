@@ -76,15 +76,27 @@ bool _Is_Normal_To_AutoSafe(Chassis_ModeChooseParameter_StructTypeDef ST_ModeCho
 
     /* 如果遥控器断开连接，进入AutoSafeMode */
     if(IsRCConnected() == false)
-    {return true;}
+    {
+        G_fTest1 = 10.0f;
+        return true;}
 
     /* 如果轮毂电机通讯异常，进入AutoSafeMode */
-    if(HM1_Rx_fps < HubMotorRx_fpsMinTH || HM2_Rx_fps < HubMotorRx_fpsMinTH)
-    {return true;}
+    if(HM1_Rx_fps < HubMotorRx_fpsMinTH)
+    {
+        G_fTest2 = 10.0f;
+        return true;}
+        if(HM2_Rx_fps < HubMotorRx_fpsMinTH)
+    {
+        G_fTest3 = 10.0f;
+        return true;
+    }
+
 
     /* 如果IMU2通讯异常，进入AutoSafeMode */
     if(UART4_Rx_fps < UART4Rx_fpsMinTH)
-    {return true;}
+    {
+        G_fTest = 10.0f;
+        return true;}
     /* 否则不进入 */
     return false;
 }
@@ -293,7 +305,7 @@ ChassisMode_EnumTypeDef ChassisStrategy_ModeChoose_RCControl(Chassis_ModeChooseP
     // 默认返回当前状态
     ChassisMode_EnumTypeDef NextMode = CurrentMode;
 
-    // 用于记忆跳跃或者离地前是 Free 还是 Follow（默认是free）
+    // 用于记忆跳跃或者离地或特殊功能转换前是 Free 还是 Follow（默认是free）
     static ChassisMode_EnumTypeDef LastActiveMode = CHMode_RC_Free;
 
     /* ========================================================== */
@@ -1939,7 +1951,7 @@ void ChassisModeControl_Ctrl(ChassisMode_EnumTypeDef ModeNow)
         /*键鼠跳跃模式*/
         case CHMode_KeyMouse_Jump:ChModeControl_KeyMouseJumpMode_Ctrl();          break;
         /*RC磕台阶模式*/
-        case CHMode_RC_Stair:ChModeControl_RCStairMode_Ctrl();        break;
+        case CHMode_RC_Stair:ChModeControl_RCStairMode_Ctrl();                    break;
         /*键鼠磕台阶模式*/
         case CHMode_KeyMouse_Stair:ChModeControl_KeyMouseStairMode_Ctrl();        break;
 
